@@ -7,6 +7,5 @@ import io.ktor.client.plugins.websocket.WebSockets
 internal actual fun platformWebSocketClient(): HttpClient = HttpClient(Darwin) {
     install(WebSockets) {
         pingIntervalMillis = WebSocketPingIntervalMillis
-        maxFrameSize = Long.MAX_VALUE
     }
 }
