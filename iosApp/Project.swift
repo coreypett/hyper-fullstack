@@ -96,7 +96,7 @@ let project = Project(
                         name: "Debug",
                         settings: [
                             "CODE_SIGN_IDENTITY": "Apple Development",
-                            "PROVISIONING_PROFILE_SPECIFIER": "match Development org.coreypett.fullstack.orderbook",
+                            "PROVISIONING_PROFILE_SPECIFIER": "match Development org.coreypett.fullstack",
                         ],
                         xcconfig: "Configuration/Config.xcconfig"
                     ),
@@ -104,7 +104,7 @@ let project = Project(
                         name: "Release",
                         settings: [
                             "CODE_SIGN_IDENTITY": "Apple Distribution",
-                            "PROVISIONING_PROFILE_SPECIFIER": "match AppStore org.coreypett.fullstack.orderbook",
+                            "PROVISIONING_PROFILE_SPECIFIER": "match AppStore org.coreypett.fullstack",
                         ],
                         xcconfig: "Configuration/Config.xcconfig"
                     ),
