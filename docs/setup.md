@@ -7,7 +7,7 @@ This project uses Kotlin Multiplatform for shared order book logic, native Andro
 - Xcode installed and selected with `xcode-select`
 - Android Studio or Android command line tools
 - Homebrew
-- Ruby through `asdf` using the version in `.tool-versions`
+- Ruby and Java through `asdf` using the versions in `.tool-versions`
 
 ## Install Tools
 
@@ -15,6 +15,7 @@ Install the Homebrew dependencies from the repo root:
 
 ```bash
 brew bundle
+asdf install
 ```
 
 The `Brewfile` installs:
@@ -49,6 +50,7 @@ Install the pinned Ruby gems from the repo root:
 
 ```bash
 bundle install
+cd iosApp
 bundle exec fastlane lanes
 ```
 
@@ -72,30 +74,45 @@ Signing is managed with `fastlane match`.
 Copy the environment template:
 
 ```bash
-cp fastlane/.env.example fastlane/.env
+cp iosApp/.env.example iosApp/.env
 ```
 
 Fill in:
 
-- `FASTLANE_USER`
 - `FASTLANE_TEAM_ID`
 - `MATCH_GIT_URL`
 - `MATCH_PASSWORD`
+- `APP_STORE_CONNECT_API_KEY_ID`
+- `APP_STORE_CONNECT_API_ISSUER_ID`
+- `APP_STORE_CONNECT_API_KEY_FILEPATH`
+
+Create a Team App Store Connect API key in App Store Connect, then place the downloaded `.p8` file under `iosApp/fastlane`.
+The `.p8` file is ignored by Git and must not be committed.
 
 For a new match repository, set `MATCH_READONLY=false` once and run:
 
 ```bash
+cd iosApp
 bundle exec fastlane ios sync_development_signing
 bundle exec fastlane ios sync_appstore_signing
 ```
 
 After match creates the certificates and profiles, switch `MATCH_READONLY` back to `true`.
 
+Build and upload TestFlight artifacts from the iOS directory:
+
+```bash
+cd iosApp
+bundle exec fastlane ios build_testflight
+bundle exec fastlane ios upload_testflight
+```
+
 ## Validation
 
 Run a simulator build without signing:
 
 ```bash
+cd iosApp
 bundle exec fastlane ios build_simulator
 ```
 
