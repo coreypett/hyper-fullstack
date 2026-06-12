@@ -7,12 +7,17 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 
+/**
+ * Hyperliquid HTTP info endpoint transport.
+ *
+ * Docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint
+ */
 internal interface HyperliquidInfoClient {
-    suspend fun post(body: JsonObject): JsonElement
+    suspend fun <Request : Any> post(request: Request, serializer: KSerializer<Request>): JsonElement
 
     class Impl(
         private val httpClient: HttpClient = platformHttpClient(),
@@ -21,10 +26,13 @@ internal interface HyperliquidInfoClient {
             explicitNulls = false
         },
     ) : HyperliquidInfoClient {
-        override suspend fun post(body: JsonObject): JsonElement {
+        override suspend fun <Request : Any> post(
+            request: Request,
+            serializer: KSerializer<Request>,
+        ): JsonElement {
             val response = httpClient.post(HyperliquidInfoUrl) {
                 header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-                setBody(body.toString())
+                setBody(json.encodeToString(serializer, request))
             }
 
             return json.parseToJsonElement(response.bodyAsText())

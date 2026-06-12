@@ -6,19 +6,40 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 
+/**
+ * Hyperliquid WebSocket subscription transport.
+ *
+ * Docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
 internal interface HyperliquidWebSocketClient {
-    fun subscribe(subscription: JsonObject): Flow<String>
+    fun <Subscription : Any> subscribe(
+        subscription: Subscription,
+        serializer: KSerializer<Subscription>,
+    ): Flow<String>
 
     class Impl(
         private val webSocketClient: HttpClient = platformWebSocketClient(),
+        private val json: Json = Json {
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        },
     ) : HyperliquidWebSocketClient {
-        override fun subscribe(subscription: JsonObject): Flow<String> = flow {
+        override fun <Subscription : Any> subscribe(
+            subscription: Subscription,
+            serializer: KSerializer<Subscription>,
+        ): Flow<String> = flow {
             webSocketClient.webSocket(urlString = HyperliquidWebSocketUrl) {
-                send(Frame.Text(subscribeMessage(subscription)))
+                val request = HyperliquidWebSocketRequestDto(
+                    method = SubscribeMethod,
+                    subscription = json.encodeToJsonElement(serializer, subscription),
+                )
+                send(Frame.Text(json.encodeToString(HyperliquidWebSocketRequestDto.serializer(), request)))
 
                 for (frame in incoming) {
                     val textFrame = frame as? Frame.Text ?: continue
@@ -26,13 +47,14 @@ internal interface HyperliquidWebSocketClient {
                 }
             }
         }
-
-        private fun subscribeMessage(subscription: JsonObject): String =
-            buildJsonObject {
-                put("method", "subscribe")
-                put("subscription", subscription)
-            }.toString()
     }
 }
 
+@Serializable
+private data class HyperliquidWebSocketRequestDto(
+    val method: String,
+    val subscription: JsonElement,
+)
+
+private const val SubscribeMethod = "subscribe"
 private const val HyperliquidWebSocketUrl = "wss://api.hyperliquid.xyz/ws"

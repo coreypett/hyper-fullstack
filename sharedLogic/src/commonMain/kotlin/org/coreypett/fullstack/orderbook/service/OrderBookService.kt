@@ -4,24 +4,23 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.doubleOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.decodeFromJsonElement
+import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
+import org.coreypett.fullstack.orderbook.dto.L2BookDataDto
 import org.coreypett.fullstack.orderbook.dto.L2BookLevelDto
+import org.coreypett.fullstack.orderbook.dto.L2BookSubscriptionDto
 import org.coreypett.fullstack.orderbook.model.OrderBookLevel
 import org.coreypett.fullstack.orderbook.model.OrderBookSelection
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
 import org.coreypett.fullstack.orderbook.model.OrderBookSnapshot
 import org.coreypett.fullstack.orderbook.util.OrderBookLevelCalculator
 
+/**
+ * Shared order book stream service backed by Hyperliquid's `l2Book` WebSocket feed.
+ *
+ * Docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ */
 internal interface OrderBookService {
     fun snapshots(selection: OrderBookSelection): Flow<OrderBookSnapshot>
 
@@ -35,7 +34,10 @@ internal interface OrderBookService {
         override fun snapshots(selection: OrderBookSelection): Flow<OrderBookSnapshot> = flow {
             val previousSizes = mutableMapOf<String, Double>()
 
-            webSocketClient.subscribe(l2BookSubscription(selection)).collect { text ->
+            webSocketClient.subscribe(
+                subscription = l2BookSubscription(selection),
+                serializer = L2BookSubscriptionDto.serializer(),
+            ).collect { text ->
                 val snapshot = parseSnapshot(
                     text = text,
                     selection = selection,
@@ -50,22 +52,20 @@ internal interface OrderBookService {
             selection: OrderBookSelection,
             previousSizes: MutableMap<String, Double>,
         ): OrderBookSnapshot? {
-            val root = json.parseToJsonElement(text).jsonObject
-            if (root["channel"]?.jsonPrimitive?.contentOrNull != "l2Book") return null
+            val envelope = json.decodeFromString(HyperliquidWebSocketEnvelopeDto.serializer(), text)
+            if (envelope.channel != "l2Book") return null
 
-            val data = root["data"]?.jsonObject ?: return null
-            val coin = data["coin"]?.jsonPrimitive?.contentOrNull
-            if (coin != selection.market.wireName) return null
+            val data = envelope.data?.let { json.decodeFromJsonElement(L2BookDataDto.serializer(), it) } ?: return null
+            if (data.coin != selection.market.wireName) return null
 
-            val levels = data["levels"]?.jsonArray ?: return null
             val bids = parseSide(
-                rawLevels = levels.getOrNull(0) as? JsonArray ?: return null,
+                levels = data.levels.getOrNull(0) ?: return null,
                 side = OrderBookSide.Bid,
                 previousSizes = previousSizes,
             ).sortedByDescending(OrderBookLevel::price)
 
             val asks = parseSide(
-                rawLevels = levels.getOrNull(1) as? JsonArray ?: return null,
+                levels = data.levels.getOrNull(1) ?: return null,
                 side = OrderBookSide.Ask,
                 previousSizes = previousSizes,
             ).sortedBy(OrderBookLevel::price)
@@ -73,28 +73,26 @@ internal interface OrderBookService {
             return OrderBookSnapshot(
                 market = selection.market,
                 precision = selection.precision,
-                timeMillis = data["time"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L,
+                timeMillis = data.time,
                 bids = bids,
                 asks = asks,
             )
         }
 
         private fun parseSide(
-            rawLevels: JsonArray,
+            levels: List<L2BookLevelDto>,
             side: OrderBookSide,
             previousSizes: MutableMap<String, Double>,
         ): List<OrderBookLevel> {
-            val parsed = rawLevels
-                .mapNotNull { rawLevel ->
-                    val level = rawLevel as? JsonObject ?: return@mapNotNull null
-                    val price = level.stringDouble("px") ?: return@mapNotNull null
-                    val size = level.stringDouble("sz") ?: return@mapNotNull null
-                    val orderCount = level["n"]?.jsonPrimitive?.intOrNull ?: 0
-                    L2BookLevelDto(price = price, size = size, orderCount = orderCount)
+            val parsed = levels
+                .mapNotNull { level ->
+                    val price = level.priceValue ?: return@mapNotNull null
+                    val size = level.sizeValue ?: return@mapNotNull null
+                    ParsedLevel(price = price, size = size, orderCount = level.orderCount)
                 }
                 .take(MaxVisibleLevels)
 
-            val maxSize = parsed.maxOfOrNull(L2BookLevelDto::size)?.takeIf { it > 0.0 } ?: 1.0
+            val maxSize = parsed.maxOfOrNull(ParsedLevel::size)?.takeIf { it > 0.0 } ?: 1.0
             return parsed.map { level ->
                 val key = "${side.name}:${level.price}"
                 val previousSize = previousSizes[key]
@@ -111,17 +109,20 @@ internal interface OrderBookService {
             }
         }
 
-        private fun JsonObject.stringDouble(name: String): Double? =
-            this[name]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()
-                ?: this[name]?.jsonPrimitive?.doubleOrNull
+        private data class ParsedLevel(
+            val price: Double,
+            val size: Double,
+            val orderCount: Int,
+        )
 
-        private fun l2BookSubscription(selection: OrderBookSelection): JsonObject =
-            buildJsonObject {
-                put("type", "l2Book")
-                put("coin", selection.market.wireName)
-                put("nSigFigs", selection.precision.nSigFigs)
-            }
+        private fun l2BookSubscription(selection: OrderBookSelection): L2BookSubscriptionDto =
+            L2BookSubscriptionDto(
+                type = L2BookSubscriptionType,
+                coin = selection.market.wireName,
+                nSigFigs = selection.precision.nSigFigs,
+            )
     }
 }
 
 private const val MaxVisibleLevels = 18
+private const val L2BookSubscriptionType = "l2Book"
