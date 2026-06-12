@@ -47,6 +47,14 @@ Generate the Tuist project and build an unsigned simulator app
 
 Build a TestFlight-ready archive using fastlane match App Store signing
 
+### ios upload_testflight
+
+```sh
+[bundle exec] fastlane ios upload_testflight
+```
+
+Upload the latest TestFlight archive to App Store Connect
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
