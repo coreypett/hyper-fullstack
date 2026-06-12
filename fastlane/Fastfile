@@ -1,0 +1,62 @@
+default_platform(:ios)
+
+repo_root = File.expand_path("..", __dir__)
+ios_project = File.join(repo_root, "iosApp", "hyper-fullstack.xcodeproj")
+derived_data_path = File.join(repo_root, "build", "xcode-derived")
+default_java_home = "/Users/coreypett/Library/Java/JavaVirtualMachines/jbr-17.0.12/Contents/Home"
+configured_java_home = ENV["JAVA_HOME"].to_s
+java_home = File.executable?(File.join(configured_java_home, "bin", "java")) ? configured_java_home : default_java_home
+ENV["JAVA_HOME"] = java_home
+
+platform :ios do
+  desc "Install development signing assets managed by fastlane match"
+  lane :sync_development_signing do
+    match(type: "development")
+  end
+
+  desc "Install App Store/TestFlight signing assets managed by fastlane match"
+  lane :sync_appstore_signing do
+    match(type: "appstore")
+  end
+
+  desc "Generate the Tuist project and build an unsigned simulator app"
+  lane :build_simulator do
+    sh("cd #{repo_root}/iosApp && tuist generate --no-open")
+    sh([
+      "JAVA_HOME=#{java_home}",
+      "xcodebuild",
+      "-project #{ios_project}",
+      "-scheme iosApp",
+      "-configuration Debug",
+      "-sdk iphonesimulator",
+      "-destination 'generic/platform=iOS Simulator'",
+      "-derivedDataPath #{derived_data_path}",
+      "CODE_SIGNING_ALLOWED=NO",
+      "build",
+    ].join(" "))
+  end
+
+  desc "Build a TestFlight-ready archive using fastlane match App Store signing"
+  lane :build_testflight do
+    sync_appstore_signing
+    sh("cd #{repo_root}/iosApp && tuist generate --no-open")
+
+    gym(
+      project: ios_project,
+      scheme: "iosApp",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: File.join(repo_root, "build", "ios"),
+      output_name: "hyper-fullstack",
+      derived_data_path: derived_data_path,
+      xcargs: [
+        "DEVELOPMENT_TEAM=#{ENV.fetch("FASTLANE_TEAM_ID")}",
+      ].join(" "),
+      export_options: {
+        provisioningProfiles: {
+          ENV.fetch("APP_IDENTIFIER", "org.coreypett.fullstack.orderbook") => "match AppStore #{ENV.fetch("APP_IDENTIFIER", "org.coreypett.fullstack.orderbook")}",
+        },
+      },
+    )
+  end
+end
