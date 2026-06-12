@@ -15,11 +15,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
-import org.coreypett.fullstack.orderbook.model.LevelChange
+import org.coreypett.fullstack.orderbook.dto.L2BookLevelDto
 import org.coreypett.fullstack.orderbook.model.OrderBookLevel
 import org.coreypett.fullstack.orderbook.model.OrderBookSelection
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
 import org.coreypett.fullstack.orderbook.model.OrderBookSnapshot
+import org.coreypett.fullstack.orderbook.util.OrderBookLevelCalculator
 
 internal interface OrderBookService {
     fun snapshots(selection: OrderBookSelection): Flow<OrderBookSnapshot>
@@ -89,11 +90,11 @@ internal interface OrderBookService {
                     val price = level.stringDouble("px") ?: return@mapNotNull null
                     val size = level.stringDouble("sz") ?: return@mapNotNull null
                     val orderCount = level["n"]?.jsonPrimitive?.intOrNull ?: 0
-                    RawLevel(price = price, size = size, orderCount = orderCount)
+                    L2BookLevelDto(price = price, size = size, orderCount = orderCount)
                 }
                 .take(MaxVisibleLevels)
 
-            val maxSize = parsed.maxOfOrNull(RawLevel::size)?.takeIf { it > 0.0 } ?: 1.0
+            val maxSize = parsed.maxOfOrNull(L2BookLevelDto::size)?.takeIf { it > 0.0 } ?: 1.0
             return parsed.map { level ->
                 val key = "${side.name}:${level.price}"
                 val previousSize = previousSizes[key]
@@ -104,13 +105,8 @@ internal interface OrderBookService {
                     price = level.price,
                     size = level.size,
                     orderCount = level.orderCount,
-                    depthFraction = (level.size / maxSize).toFloat().coerceIn(0f, 1f),
-                    change = when {
-                        previousSize == null -> LevelChange.None
-                        level.size > previousSize -> LevelChange.Up
-                        level.size < previousSize -> LevelChange.Down
-                        else -> LevelChange.None
-                    },
+                    depthFraction = OrderBookLevelCalculator.depthFraction(level.size, maxSize),
+                    change = OrderBookLevelCalculator.change(previousSize, level.size),
                 )
             }
         }
@@ -118,12 +114,6 @@ internal interface OrderBookService {
         private fun JsonObject.stringDouble(name: String): Double? =
             this[name]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()
                 ?: this[name]?.jsonPrimitive?.doubleOrNull
-
-        private data class RawLevel(
-            val price: Double,
-            val size: Double,
-            val orderCount: Int,
-        )
 
         private fun l2BookSubscription(selection: OrderBookSelection): JsonObject =
             buildJsonObject {
