@@ -1,24 +1,32 @@
-*.iml
-.kotlin
-.gradle
-**/build/
-xcuserdata
-!src/**/build/
-local.properties
-.idea
+# OS and IDE
 .DS_Store
+.idea/
+*.iml
+
+# Local configuration and secrets
+local.properties
+.env
+**/.env
+*.env
+!*.env.example
+iosApp/fastlane/*.p8
+
+# Kotlin and Gradle
+.gradle/
+.kotlin/
+**/build/
+!src/**/build/
+
+# Android native build output
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Tuist and Xcode generated files
+xcuserdata/
+iosApp/Derived/
 iosApp/*.xcodeproj/
 iosApp/*.xcworkspace/
-iosApp/Derived/
-fastlane/.env
-fastlane/report.xml
-captures
-.externalNativeBuild
-.cxx
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-!*.xcodeproj/project.xcworkspace/
-!*.xcworkspace/contents.xcworkspacedata
-**/xcshareddata/WorkspaceSettings.xcsettings
-node_modules/
+
+# Fastlane generated files
+iosApp/fastlane/report.xml
