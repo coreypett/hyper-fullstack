@@ -7,7 +7,7 @@ import platform.Foundation.NSNumberFormatterDecimalStyle
 import platform.Foundation.localeWithLocaleIdentifier
 import platform.Foundation.numberWithDouble
 
-internal actual fun platformFormatMarketPrice(value: Double): String = value.formatWithDecimals(
+internal actual fun formatMarketPrice(value: Double): String = value.formatWithDecimals(
     decimals = when {
         value >= 10_000.0 -> 0
         value >= 1_000.0 -> 1
@@ -15,7 +15,7 @@ internal actual fun platformFormatMarketPrice(value: Double): String = value.for
     },
 )
 
-internal actual fun platformFormatMarketSize(value: Double): String = when {
+internal actual fun formatMarketSize(value: Double): String = when {
     value >= 1_000.0 -> "${(value / 1_000.0).formatWithDecimals(2)}K"
     value >= 1.0 -> value.formatWithDecimals(4)
     else -> value.formatWithDecimals(6)

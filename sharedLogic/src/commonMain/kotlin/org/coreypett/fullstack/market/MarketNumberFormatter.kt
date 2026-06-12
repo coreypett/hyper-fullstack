@@ -1,11 +1,9 @@
 package org.coreypett.fullstack.market
 
 internal object MarketNumberFormatter {
-    fun price(value: Double): String = platformFormatMarketPrice(value)
-
-    fun size(value: Double): String = platformFormatMarketSize(value)
+    fun price(value: Double): String = formatMarketPrice(value)
+    fun size(value: Double): String = formatMarketSize(value)
 }
 
-internal expect fun platformFormatMarketPrice(value: Double): String
-
-internal expect fun platformFormatMarketSize(value: Double): String
+internal expect fun formatMarketPrice(value: Double): String
+internal expect fun formatMarketSize(value: Double): String
