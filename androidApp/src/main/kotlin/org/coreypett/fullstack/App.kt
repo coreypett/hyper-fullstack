@@ -44,15 +44,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.coreypett.fullstack.orderbook.LevelChange
-import org.coreypett.fullstack.orderbook.MarketSymbol
-import org.coreypett.fullstack.orderbook.OrderBookLevel
-import org.coreypett.fullstack.orderbook.OrderBookRepository
-import org.coreypett.fullstack.orderbook.OrderBookSelection
-import org.coreypett.fullstack.orderbook.OrderBookSide
-import org.coreypett.fullstack.orderbook.OrderBookSnapshot
-import org.coreypett.fullstack.orderbook.OrderBookUiState
-import org.coreypett.fullstack.orderbook.PricePrecision
+import org.coreypett.fullstack.orderbook.model.LevelChange
+import org.coreypett.fullstack.orderbook.model.MarketSymbol
+import org.coreypett.fullstack.orderbook.model.OrderBookLevel
+import org.coreypett.fullstack.orderbook.model.OrderBookSelection
+import org.coreypett.fullstack.orderbook.model.OrderBookSide
+import org.coreypett.fullstack.orderbook.model.OrderBookSnapshot
+import org.coreypett.fullstack.orderbook.model.OrderBookUiState
+import org.coreypett.fullstack.orderbook.model.PricePrecision
+import org.coreypett.fullstack.orderbook.repository.OrderBookRepository
 
 @Composable
 @Preview

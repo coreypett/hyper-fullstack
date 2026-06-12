@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.orderbook
+package org.coreypett.fullstack.network
 
 import io.ktor.client.HttpClient
 
