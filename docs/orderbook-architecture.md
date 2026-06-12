@@ -15,6 +15,8 @@ This project keeps the assignment-critical trading logic in KMP while leaving th
 `iosApp`
 
 - Remains the native SwiftUI target for the required iOS order book widget.
+- Uses Tuist as the source of truth for generated Xcode project files.
+- Uses `fastlane match` as the source of truth for development and App Store signing assets.
 - Should consume `SharedLogic` through a small Swift-facing adapter or view model.
 - Should implement iOS-native scrolling, animation, haptics, and selection controls.
 
@@ -38,4 +40,4 @@ This project keeps the assignment-critical trading logic in KMP while leaving th
 2. Build the native iOS order book view with `ScrollView` or `List`, segmented controls, row depth bars, flash animations, and selection haptics.
 3. Add reconnect/backoff policy and explicit stale-state handling.
 4. Add lightweight parser tests with captured `l2Book` frames.
-5. Initialize Git before preparing the final deliverable history and remote.
+5. Configure `fastlane/.env`, then run `bundle exec fastlane ios sync_development_signing`.
