@@ -1,8 +1,30 @@
 import ProjectDescription
 
+let appName = "hyper-fullstack"
+let projectName = "iosApp"
+let organizationName = "Corey Pett"
+let targetName = "iosApp"
+let bundleIdentifier = "org.coreypett.fullstack"
+let deploymentTarget = "18.2"
+let marketingVersion = "1.0"
+let buildNumber = "1"
+
+let infoPlistPath: Path = "iosApp/Info.plist"
+let previewContentPath = "iosApp/Preview Content"
+let sharedFrameworkName = "SharedLogic"
+let sharedFrameworkSearchPath = "$(SRCROOT)/../sharedLogic/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+
+func setting(_ value: String) -> SettingValue {
+    .string(value)
+}
+
+func setting(_ values: [String]) -> SettingValue {
+    .array(values)
+}
+
 let project = Project(
-    name: "hyper-fullstack",
-    organizationName: "Corey Pett",
+    name: projectName,
+    organizationName: organizationName,
     settings: .settings(
         base: [
             "ALWAYS_SEARCH_USER_PATHS": "NO",
@@ -17,24 +39,24 @@ let project = Project(
             "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
             "GCC_C_LANGUAGE_STANDARD": "gnu17",
             "GCC_NO_COMMON_BLOCKS": "YES",
-            "IPHONEOS_DEPLOYMENT_TARGET": "18.2",
+            "IPHONEOS_DEPLOYMENT_TARGET": setting(deploymentTarget),
             "LOCALIZATION_PREFERS_STRING_CATALOGS": "YES",
             "MTL_FAST_MATH": "YES",
             "SDKROOT": "iphoneos",
         ],
         configurations: [
-            .debug(name: "Debug", xcconfig: "Configuration/Config.xcconfig"),
-            .release(name: "Release", xcconfig: "Configuration/Config.xcconfig"),
+            .debug(name: "Debug"),
+            .release(name: "Release"),
         ]
     ),
     targets: [
         .target(
-            name: "iosApp",
+            name: targetName,
             destinations: [.iPhone, .iPad],
             product: .app,
-            bundleId: "$(PRODUCT_BUNDLE_IDENTIFIER)",
-            deploymentTargets: .iOS("18.2"),
-            infoPlist: .file(path: "iosApp/Info.plist"),
+            bundleId: bundleIdentifier,
+            deploymentTargets: .iOS(deploymentTarget),
+            infoPlist: .file(path: infoPlistPath),
             sources: [
                 "iosApp/**/*.swift",
             ],
@@ -63,13 +85,14 @@ let project = Project(
                     "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
                     "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
                     "CODE_SIGN_STYLE": "Manual",
-                    "DEVELOPMENT_ASSET_PATHS": "\"iosApp/Preview Content\"",
+                    "CURRENT_PROJECT_VERSION": setting(buildNumber),
+                    "DEVELOPMENT_ASSET_PATHS": setting("\"\(previewContentPath)\""),
                     "DEVELOPMENT_TEAM": "$(DEVELOPMENT_TEAM)",
                     "ENABLE_PREVIEWS": "YES",
-                    "FRAMEWORK_SEARCH_PATHS": [
+                    "FRAMEWORK_SEARCH_PATHS": setting([
                         "$(inherited)",
-                        "$(SRCROOT)/../sharedLogic/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
-                    ],
+                        sharedFrameworkSearchPath,
+                    ]),
                     "GENERATE_INFOPLIST_FILE": "YES",
                     "INFOPLIST_FILE": "iosApp/Info.plist",
                     "INFOPLIST_KEY_UIApplicationSceneManifest_Generation": "YES",
@@ -77,16 +100,18 @@ let project = Project(
                     "INFOPLIST_KEY_UILaunchScreen_Generation": "YES",
                     "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad": "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
                     "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone": "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
-                    "LD_RUNPATH_SEARCH_PATHS": [
+                    "LD_RUNPATH_SEARCH_PATHS": setting([
                         "$(inherited)",
                         "@executable_path/Frameworks",
-                    ],
-                    "OTHER_LDFLAGS": [
+                    ]),
+                    "MARKETING_VERSION": setting(marketingVersion),
+                    "OTHER_LDFLAGS": setting([
                         "$(inherited)",
                         "-framework",
-                        "SharedLogic",
-                    ],
-                    "PRODUCT_NAME": "hyper-fullstack",
+                        sharedFrameworkName,
+                    ]),
+                    "PRODUCT_BUNDLE_IDENTIFIER": setting(bundleIdentifier),
+                    "PRODUCT_NAME": setting(appName),
                     "SWIFT_EMIT_LOC_STRINGS": "YES",
                     "SWIFT_VERSION": "5.0",
                     "TARGETED_DEVICE_FAMILY": "1,2",
@@ -98,15 +123,13 @@ let project = Project(
                             "CODE_SIGN_IDENTITY": "Apple Development",
                             "PROVISIONING_PROFILE_SPECIFIER": "match Development org.coreypett.fullstack",
                         ],
-                        xcconfig: "Configuration/Config.xcconfig"
                     ),
                     .release(
                         name: "Release",
                         settings: [
                             "CODE_SIGN_IDENTITY": "Apple Distribution",
                             "PROVISIONING_PROFILE_SPECIFIER": "match AppStore org.coreypett.fullstack",
-                        ],
-                        xcconfig: "Configuration/Config.xcconfig"
+                        ]
                     ),
                 ]
             )
@@ -114,9 +137,9 @@ let project = Project(
     ],
     schemes: [
         .scheme(
-            name: "iosApp",
+            name: targetName,
             shared: true,
-            buildAction: .buildAction(targets: ["iosApp"]),
+            buildAction: .buildAction(targets: [.target(targetName)]),
             runAction: .runAction(configuration: "Debug"),
             archiveAction: .archiveAction(configuration: "Release")
         ),
