@@ -5,7 +5,7 @@ let projectName = "iosApp"
 let organizationName = "Corey Pett"
 let targetName = "iosApp"
 let bundleIdentifier = "org.coreypett.fullstack"
-let deploymentTarget = "18.2"
+let deploymentTarget = "26.0"
 let marketingVersion = "1.0"
 let buildNumber = "1"
 
