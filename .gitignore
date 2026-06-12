@@ -7,6 +7,11 @@ xcuserdata
 local.properties
 .idea
 .DS_Store
+iosApp/*.xcodeproj/
+iosApp/*.xcworkspace/
+iosApp/Derived/
+fastlane/.env
+fastlane/report.xml
 captures
 .externalNativeBuild
 .cxx
