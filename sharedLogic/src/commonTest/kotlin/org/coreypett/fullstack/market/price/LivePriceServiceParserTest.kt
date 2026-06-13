@@ -1,11 +1,11 @@
-package org.coreypett.fullstack.marketdata.price
+package org.coreypett.fullstack.market.price
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import org.coreypett.fullstack.market.model.MarketSymbol
-import org.coreypett.fullstack.marketdata.price.service.LivePriceService
+import org.coreypett.fullstack.market.price.service.LivePriceService
 
 class LivePriceServiceParserTest {
     @Test

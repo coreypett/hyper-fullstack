@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.candle.model
+package org.coreypett.fullstack.market.candle.model
 
 sealed interface CandleChartUiState {
     data object Connecting : CandleChartUiState

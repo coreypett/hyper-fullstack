@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.price.model
+package org.coreypett.fullstack.market.price.model
 
 import org.coreypett.fullstack.market.MarketNumberFormatter
 import org.coreypett.fullstack.market.model.MarketSymbol

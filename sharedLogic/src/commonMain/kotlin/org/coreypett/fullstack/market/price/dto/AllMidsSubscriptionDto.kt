@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.price.dto
+package org.coreypett.fullstack.market.price.dto
 
 import kotlinx.serialization.Serializable
 

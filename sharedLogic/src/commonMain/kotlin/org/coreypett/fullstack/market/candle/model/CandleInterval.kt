@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.candle.model
+package org.coreypett.fullstack.market.candle.model
 
 enum class CandleInterval(val wireName: String, val displayName: String) {
     OneMinute("1m", "1m"),

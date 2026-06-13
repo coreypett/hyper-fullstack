@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.candle.repository
+package org.coreypett.fullstack.market.candle.repository
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.scan
-import org.coreypett.fullstack.marketdata.candle.model.CandleBar
-import org.coreypett.fullstack.marketdata.candle.model.CandleChartUiState
-import org.coreypett.fullstack.marketdata.candle.model.CandleSelection
-import org.coreypett.fullstack.marketdata.candle.service.CandleService
+import org.coreypett.fullstack.market.candle.model.CandleBar
+import org.coreypett.fullstack.market.candle.model.CandleChartUiState
+import org.coreypett.fullstack.market.candle.model.CandleSelection
+import org.coreypett.fullstack.market.candle.service.CandleService
 
 class CandleRepository internal constructor(
     private val service: CandleService,

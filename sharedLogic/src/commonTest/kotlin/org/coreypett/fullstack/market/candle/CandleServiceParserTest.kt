@@ -1,11 +1,11 @@
-package org.coreypett.fullstack.marketdata.candle
+package org.coreypett.fullstack.market.candle
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.coreypett.fullstack.market.model.MarketSymbol
-import org.coreypett.fullstack.marketdata.candle.model.CandleInterval
-import org.coreypett.fullstack.marketdata.candle.model.CandleSelection
-import org.coreypett.fullstack.marketdata.candle.service.CandleService
+import org.coreypett.fullstack.market.candle.model.CandleInterval
+import org.coreypett.fullstack.market.candle.model.CandleSelection
+import org.coreypett.fullstack.market.candle.service.CandleService
 
 class CandleServiceParserTest {
     @Test

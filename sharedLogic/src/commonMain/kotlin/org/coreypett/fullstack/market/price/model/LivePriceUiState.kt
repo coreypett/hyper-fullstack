@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.price.model
+package org.coreypett.fullstack.market.price.model
 
 sealed interface LivePriceUiState {
     data object Connecting : LivePriceUiState

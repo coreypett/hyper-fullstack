@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.candle.model
+package org.coreypett.fullstack.market.candle.model
 
 import org.coreypett.fullstack.market.model.MarketSymbol
 

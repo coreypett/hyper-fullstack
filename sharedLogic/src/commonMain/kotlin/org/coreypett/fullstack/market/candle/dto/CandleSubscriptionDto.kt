@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.candle.dto
+package org.coreypett.fullstack.market.candle.dto
 
 import kotlinx.serialization.Serializable
 

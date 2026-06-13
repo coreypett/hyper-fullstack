@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.candle.service
+package org.coreypett.fullstack.market.candle.service
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -7,10 +7,10 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.decodeFromJsonElement
-import org.coreypett.fullstack.marketdata.candle.dto.CandleDto
-import org.coreypett.fullstack.marketdata.candle.dto.CandleSubscriptionDto
-import org.coreypett.fullstack.marketdata.candle.model.CandleBar
-import org.coreypett.fullstack.marketdata.candle.model.CandleSelection
+import org.coreypett.fullstack.market.candle.dto.CandleDto
+import org.coreypett.fullstack.market.candle.dto.CandleSubscriptionDto
+import org.coreypett.fullstack.market.candle.model.CandleBar
+import org.coreypett.fullstack.market.candle.model.CandleSelection
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 

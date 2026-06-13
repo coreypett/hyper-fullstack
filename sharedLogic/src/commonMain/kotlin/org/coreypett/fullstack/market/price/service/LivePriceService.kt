@@ -1,4 +1,4 @@
-package org.coreypett.fullstack.marketdata.price.service
+package org.coreypett.fullstack.market.price.service
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -6,9 +6,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.coreypett.fullstack.market.model.MarketSymbol
-import org.coreypett.fullstack.marketdata.price.dto.AllMidsDataDto
-import org.coreypett.fullstack.marketdata.price.dto.AllMidsSubscriptionDto
-import org.coreypett.fullstack.marketdata.price.model.LivePrice
+import org.coreypett.fullstack.market.price.dto.AllMidsDataDto
+import org.coreypett.fullstack.market.price.dto.AllMidsSubscriptionDto
+import org.coreypett.fullstack.market.price.model.LivePrice
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 
