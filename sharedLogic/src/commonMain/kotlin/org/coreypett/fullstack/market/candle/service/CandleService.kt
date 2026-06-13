@@ -11,6 +11,7 @@ import org.coreypett.fullstack.market.candle.dto.CandleDto
 import org.coreypett.fullstack.market.candle.dto.CandleSubscriptionDto
 import org.coreypett.fullstack.market.candle.model.CandleBar
 import org.coreypett.fullstack.market.candle.model.CandleSelection
+import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 
@@ -24,10 +25,7 @@ internal interface CandleService {
 
     class Impl(
         private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
-        private val json: Json = Json {
-            ignoreUnknownKeys = true
-            explicitNulls = false
-        },
+        private val json: Json = HyperliquidJson,
     ) : CandleService {
         override fun candles(selection: CandleSelection): Flow<CandleBar> = flow {
             webSocketClient.subscribe(

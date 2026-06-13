@@ -9,6 +9,7 @@ import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.market.price.dto.AllMidsDataDto
 import org.coreypett.fullstack.market.price.dto.AllMidsSubscriptionDto
 import org.coreypett.fullstack.market.price.model.LivePrice
+import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 
@@ -20,10 +21,7 @@ internal interface LivePriceService {
 
     class Impl(
         private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
-        private val json: Json = Json {
-            ignoreUnknownKeys = true
-            explicitNulls = false
-        },
+        private val json: Json = HyperliquidJson,
     ) : LivePriceService {
         override fun prices(market: MarketSymbol): Flow<LivePrice> = flow {
             webSocketClient.subscribe(

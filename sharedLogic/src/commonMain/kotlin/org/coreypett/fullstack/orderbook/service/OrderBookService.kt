@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
+import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.orderbook.dto.L2BookDataDto
@@ -26,10 +27,7 @@ internal interface OrderBookService {
 
     class Impl(
         private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
-        private val json: Json = Json {
-            ignoreUnknownKeys = true
-            explicitNulls = false
-        },
+        private val json: Json = HyperliquidJson,
     ) : OrderBookService {
         override fun snapshots(selection: OrderBookSelection): Flow<OrderBookSnapshot> = flow {
             val previousSizes = mutableMapOf<String, Double>()

@@ -21,10 +21,7 @@ internal interface HyperliquidInfoClient {
 
     class Impl(
         private val httpClient: HttpClient = platformHttpClient(),
-        private val json: Json = Json {
-            ignoreUnknownKeys = true
-            explicitNulls = false
-        },
+        private val json: Json = HyperliquidJson,
     ) : HyperliquidInfoClient {
         override suspend fun <Request : Any> post(
             request: Request,

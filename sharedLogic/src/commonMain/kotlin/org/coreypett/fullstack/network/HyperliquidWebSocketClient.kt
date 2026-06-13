@@ -25,10 +25,7 @@ internal interface HyperliquidWebSocketClient {
 
     class Impl(
         private val webSocketClient: HttpClient = platformWebSocketClient(),
-        private val json: Json = Json {
-            ignoreUnknownKeys = true
-            explicitNulls = false
-        },
+        private val json: Json = HyperliquidJson,
     ) : HyperliquidWebSocketClient {
         override fun <Subscription : Any> subscribe(
             subscription: Subscription,
