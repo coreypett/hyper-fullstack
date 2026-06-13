@@ -1,0 +1,15 @@
+{
+  "originHash" : "d83718b42a6449f25bbae00020f945dd818ebabc8e2113d8167bf0c7f604d7fd",
+  "pins" : [
+    {
+      "identity" : "lightweightchartsios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tradingview/LightweightChartsIOS.git",
+      "state" : {
+        "revision" : "7eb7c0145df060d490555c97e70c829c2b53297e",
+        "version" : "5.2.0"
+      }
+    }
+  ],
+  "version" : 3
+}

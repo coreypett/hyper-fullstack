@@ -16,6 +16,7 @@ kotlinx-coroutines = "1.10.2"
 kotlinx-serialization-json = "1.11.0"
 ktor = "3.4.3"
 material3 = "1.11.0-alpha07"
+tradingview-lightweightcharts = "5.2.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -41,6 +42,7 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
+tradingview-lightweightcharts = { module = "com.tradingview:lightweightcharts", version.ref = "tradingview-lightweightcharts" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -22,6 +22,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.uiToolingPreview)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.tradingview.lightweightcharts)
     debugImplementation(libs.compose.uiTooling)
 }
 

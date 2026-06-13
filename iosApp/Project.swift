@@ -64,6 +64,9 @@ let project = Project(
                 "iosApp/Assets.xcassets",
                 "iosApp/Preview Content/**",
             ],
+            dependencies: [
+                .external(name: "LightweightCharts"),
+            ],
             scripts: [
                 .pre(
                     script: """
@@ -113,7 +116,7 @@ let project = Project(
                     "PRODUCT_BUNDLE_IDENTIFIER": setting(bundleIdentifier),
                     "PRODUCT_NAME": setting(appName),
                     "SWIFT_EMIT_LOC_STRINGS": "YES",
-                    "SWIFT_VERSION": "5.0",
+                    "SWIFT_VERSION": "6.0",
                     "TARGETED_DEVICE_FAMILY": "1,2",
                 ],
                 configurations: [
