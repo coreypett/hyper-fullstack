@@ -77,6 +77,13 @@ let project = Project(
 
                     cd "$SRCROOT/.."
                     ./gradlew :sharedLogic:embedAndSignAppleFrameworkForXcode --console=plain
+                    ./gradlew :sharedLogic:copyFrameworkResourcesToApp \
+                      -Pmoko.resources.BUILT_PRODUCTS_DIR="$BUILT_PRODUCTS_DIR" \
+                      -Pmoko.resources.CONTENTS_FOLDER_PATH="$CONTENTS_FOLDER_PATH" \
+                      -Pmoko.resources.CONFIGURATION="$CONFIGURATION" \
+                      -Pmoko.resources.PLATFORM_NAME="$PLATFORM_NAME" \
+                      -Pmoko.resources.ARCHS="$ARCHS" \
+                      --console=plain
                     """,
                     name: "Compile Kotlin Framework",
                     basedOnDependencyAnalysis: false

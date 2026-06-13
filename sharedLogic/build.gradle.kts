@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.mokoResources)
 }
 
 kotlin {
@@ -42,6 +43,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.websockets)
+            implementation(libs.moko.resources)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -50,4 +52,10 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
+}
+
+multiplatformResources {
+    resourcesPackage.set("org.coreypett.fullstack.market")
+    resourcesClassName.set("MR")
+    iosMinimalDeploymentTarget.set("26.0")
 }
