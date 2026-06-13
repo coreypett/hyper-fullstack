@@ -25,6 +25,7 @@ captures/
 # Tuist and Xcode generated files
 xcuserdata/
 iosApp/Derived/
+iosApp/Tuist/.build/
 iosApp/*.xcodeproj/
 iosApp/*.xcworkspace/
 
