@@ -2,12 +2,15 @@ package org.coreypett.fullstack.orderbook.service
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
+import org.coreypett.fullstack.network.HyperliquidWebSocketEvent
+import org.coreypett.fullstack.network.RealtimeFeedEvent
 import org.coreypett.fullstack.orderbook.dto.L2BookDataDto
 import org.coreypett.fullstack.orderbook.dto.L2BookLevelDto
 import org.coreypett.fullstack.orderbook.dto.L2BookSubscriptionDto
@@ -23,25 +26,35 @@ import org.coreypett.fullstack.orderbook.util.OrderBookLevelCalculator
  * Docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
  */
 internal interface OrderBookService {
-    fun snapshots(selection: OrderBookSelection): Flow<OrderBookSnapshot>
+    fun snapshots(selection: OrderBookSelection): Flow<OrderBookSnapshot> =
+        snapshotEvents(selection).mapNotNull { event ->
+            (event as? RealtimeFeedEvent.Live)?.value
+        }
+
+    fun snapshotEvents(selection: OrderBookSelection): Flow<RealtimeFeedEvent<OrderBookSnapshot>>
 
     class Impl(
         private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
         private val json: Json = HyperliquidJson,
     ) : OrderBookService {
-        override fun snapshots(selection: OrderBookSelection): Flow<OrderBookSnapshot> = flow {
+        override fun snapshotEvents(selection: OrderBookSelection): Flow<RealtimeFeedEvent<OrderBookSnapshot>> = flow {
             val previousSizes = mutableMapOf<String, Double>()
 
-            webSocketClient.subscribe(
+            webSocketClient.subscribeEvents(
                 subscription = l2BookSubscription(selection),
                 serializer = L2BookSubscriptionDto.serializer(),
-            ).collect { text ->
-                val snapshot = parseSnapshot(
-                    text = text,
-                    selection = selection,
-                    previousSizes = previousSizes,
-                ) ?: return@collect
-                emit(snapshot)
+            ).collect { event ->
+                when (event) {
+                    is HyperliquidWebSocketEvent.Reconnecting -> emit(event.toRealtimeFeedEvent())
+                    is HyperliquidWebSocketEvent.Text -> {
+                        val snapshot = parseSnapshot(
+                            text = event.text,
+                            selection = selection,
+                            previousSizes = previousSizes,
+                        ) ?: return@collect
+                        emit(RealtimeFeedEvent.Live(snapshot))
+                    }
+                }
             }
         }
 
@@ -121,6 +134,13 @@ internal interface OrderBookService {
             )
     }
 }
+
+private fun HyperliquidWebSocketEvent.Reconnecting.toRealtimeFeedEvent(): RealtimeFeedEvent.Reconnecting =
+    RealtimeFeedEvent.Reconnecting(
+        attempt = attempt,
+        delayMillis = delayMillis,
+        reason = reason,
+    )
 
 private const val MaxVisibleLevels = 18
 private const val L2BookSubscriptionType = "l2Book"

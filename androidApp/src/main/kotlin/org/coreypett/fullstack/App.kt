@@ -144,6 +144,7 @@ private fun OrderBookScreen(
             OrderBookUiState.Connecting -> CenterMessage("Connecting")
             is OrderBookUiState.Failed -> CenterMessage(uiState.message)
             is OrderBookUiState.Live -> OrderBook(snapshot = uiState.snapshot)
+            is OrderBookUiState.Stale -> OrderBook(snapshot = uiState.snapshot)
         }
     }
 }
@@ -343,12 +344,14 @@ private fun stateLabel(uiState: OrderBookUiState): String = when (uiState) {
     OrderBookUiState.Connecting -> "Connecting"
     is OrderBookUiState.Failed -> "Disconnected"
     is OrderBookUiState.Live -> "Live"
+    is OrderBookUiState.Stale -> "Reconnecting"
 }
 
 private fun stateColor(uiState: OrderBookUiState): Color = when (uiState) {
     OrderBookUiState.Connecting -> AppColors.TextSecondary
     is OrderBookUiState.Failed -> AppColors.Ask
     is OrderBookUiState.Live -> AppColors.Bid
+    is OrderBookUiState.Stale -> AppColors.Accent
 }
 
 private object AppColors {

@@ -2,6 +2,7 @@ package org.coreypett.fullstack.market.price.service
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -12,23 +13,37 @@ import org.coreypett.fullstack.market.price.model.LivePrice
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
+import org.coreypett.fullstack.network.HyperliquidWebSocketEvent
+import org.coreypett.fullstack.network.RealtimeFeedEvent
 
 /**
  * Shared live price service backed by Hyperliquid's `allMids` WebSocket feed.
  */
 internal interface LivePriceService {
-    fun prices(market: MarketSymbol): Flow<LivePrice>
+    fun prices(market: MarketSymbol): Flow<LivePrice> =
+        priceEvents(market).mapNotNull { event ->
+            (event as? RealtimeFeedEvent.Live)?.value
+        }
+
+    fun priceEvents(market: MarketSymbol): Flow<RealtimeFeedEvent<LivePrice>>
 
     class Impl(
         private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
         private val json: Json = HyperliquidJson,
     ) : LivePriceService {
-        override fun prices(market: MarketSymbol): Flow<LivePrice> = flow {
-            webSocketClient.subscribe(
+        override fun priceEvents(market: MarketSymbol): Flow<RealtimeFeedEvent<LivePrice>> = flow {
+            webSocketClient.subscribeEvents(
                 subscription = AllMidsSubscriptionDto(type = AllMidsSubscriptionType),
                 serializer = AllMidsSubscriptionDto.serializer(),
-            ).collect { text ->
-                parsePrice(text, market)?.let { emit(it) }
+            ).collect { event ->
+                when (event) {
+                    is HyperliquidWebSocketEvent.Reconnecting -> emit(event.toRealtimeFeedEvent())
+                    is HyperliquidWebSocketEvent.Text -> {
+                        parsePrice(event.text, market)?.let { price ->
+                            emit(RealtimeFeedEvent.Live(price))
+                        }
+                    }
+                }
             }
         }
 
@@ -42,5 +57,12 @@ internal interface LivePriceService {
         }
     }
 }
+
+private fun HyperliquidWebSocketEvent.Reconnecting.toRealtimeFeedEvent(): RealtimeFeedEvent.Reconnecting =
+    RealtimeFeedEvent.Reconnecting(
+        attempt = attempt,
+        delayMillis = delayMillis,
+        reason = reason,
+    )
 
 private const val AllMidsSubscriptionType = "allMids"

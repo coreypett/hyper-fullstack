@@ -10,6 +10,7 @@ This project keeps the assignment-critical trading logic in KMP while leaving th
 - Builds the `l2Book` subscription with `coin` and `nSigFigs`.
 - Parses raw websocket frames into stable `OrderBookSnapshot` values.
 - Normalizes asks, bids, spread, depth fractions, and row-level size-change hints.
+- Applies shared websocket reconnect/backoff handling and preserves last-known data as stale UI state.
 - Exports a narrow `OrderBookRepository.states(selection)` flow for platform UI.
 
 `iosApp`
@@ -38,6 +39,6 @@ This project keeps the assignment-critical trading logic in KMP while leaving th
 
 1. Add a SwiftUI `OrderBookViewModel` wrapper around `OrderBookRepository`.
 2. Build the native iOS order book view with `ScrollView` or `List`, segmented controls, row depth bars, flash animations, and selection haptics.
-3. Add reconnect/backoff policy and explicit stale-state handling.
-4. Add lightweight parser tests with captured `l2Book` frames.
+3. Add lightweight parser tests with captured `l2Book` frames.
+4. Consider websocket multiplexing if order book, candles, and prices need to run concurrently on one socket.
 5. Configure `iosApp/.env`, then run `cd iosApp && bundle exec fastlane ios sync_development_signing`.

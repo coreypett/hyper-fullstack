@@ -2,6 +2,7 @@ package org.coreypett.fullstack.market.candle.service
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -19,6 +20,8 @@ import org.coreypett.fullstack.network.HyperliquidInfoClient
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
+import org.coreypett.fullstack.network.HyperliquidWebSocketEvent
+import org.coreypett.fullstack.network.RealtimeFeedEvent
 
 /**
  * Shared candle stream service backed by Hyperliquid's `candle` WebSocket feed.
@@ -27,7 +30,12 @@ import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
  * Snapshot docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint
  */
 internal interface CandleService {
-    fun candles(selection: CandleSelection): Flow<CandleBar>
+    fun candles(selection: CandleSelection): Flow<CandleBar> =
+        candleEvents(selection).mapNotNull { event ->
+            (event as? RealtimeFeedEvent.Live)?.value
+        }
+
+    fun candleEvents(selection: CandleSelection): Flow<RealtimeFeedEvent<CandleBar>>
 
     suspend fun history(
         selection: CandleSelection,
@@ -50,12 +58,19 @@ internal interface CandleService {
             return parseHistory(response, selection)
         }
 
-        override fun candles(selection: CandleSelection): Flow<CandleBar> = flow {
-            webSocketClient.subscribe(
+        override fun candleEvents(selection: CandleSelection): Flow<RealtimeFeedEvent<CandleBar>> = flow {
+            webSocketClient.subscribeEvents(
                 subscription = candleSubscription(selection),
                 serializer = CandleSubscriptionDto.serializer(),
-            ).collect { text ->
-                parseCandles(text, selection).forEach { emit(it) }
+            ).collect { event ->
+                when (event) {
+                    is HyperliquidWebSocketEvent.Reconnecting -> emit(event.toRealtimeFeedEvent())
+                    is HyperliquidWebSocketEvent.Text -> {
+                        parseCandles(event.text, selection).forEach { candle ->
+                            emit(RealtimeFeedEvent.Live(candle))
+                        }
+                    }
+                }
             }
         }
 
@@ -122,6 +137,13 @@ internal interface CandleService {
             )
     }
 }
+
+private fun HyperliquidWebSocketEvent.Reconnecting.toRealtimeFeedEvent(): RealtimeFeedEvent.Reconnecting =
+    RealtimeFeedEvent.Reconnecting(
+        attempt = attempt,
+        delayMillis = delayMillis,
+        reason = reason,
+    )
 
 private const val CandleSubscriptionType = "candle"
 private const val CandleSnapshotRequestType = "candleSnapshot"

@@ -1,22 +1,19 @@
 package org.coreypett.fullstack.market.candle.repository
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.scan
 import org.coreypett.fullstack.market.candle.model.CandleBar
 import org.coreypett.fullstack.market.candle.model.CandleChartUiState
 import org.coreypett.fullstack.market.candle.model.CandleHistoryRange
 import org.coreypett.fullstack.market.candle.model.CandleSelection
 import org.coreypett.fullstack.market.candle.service.CandleService
+import org.coreypett.fullstack.network.RealtimeFeedEvent
 
 class CandleRepository internal constructor(
     private val service: CandleService,
@@ -26,16 +23,7 @@ class CandleRepository internal constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     fun states(selection: StateFlow<CandleSelection>): Flow<CandleChartUiState> =
         selection.flatMapLatest { currentSelection ->
-            service.candles(currentSelection)
-                .scan(emptyList<CandleBar>()) { bars, next ->
-                    bars.upsertByOpenTime(next).takeLast(MaxVisibleCandles)
-                }
-                .drop(1)
-                .map<List<CandleBar>, CandleChartUiState>(CandleChartUiState::Live)
-                .onStart { emit(CandleChartUiState.Connecting) }
-                .catch { error ->
-                    emit(CandleChartUiState.Failed(error.message ?: "Unable to load candles"))
-                }
+            candleStates(currentSelection, initialBars = emptyList())
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -47,24 +35,56 @@ class CandleRepository internal constructor(
             currentSelection to currentRange
         }.flatMapLatest { (currentSelection, currentRange) ->
             flow<CandleChartUiState> {
-                val historicalBars = service.history(currentSelection, currentRange)
-                    .takeLast(MaxVisibleCandles)
-                emit(CandleChartUiState.Live(historicalBars))
-
-                service.candles(currentSelection)
-                    .scan(historicalBars) { bars, next ->
-                        bars.upsertByOpenTime(next).takeLast(MaxVisibleCandles)
-                    }
-                    .drop(1)
-                    .collect { bars ->
-                        emit(CandleChartUiState.Live(bars))
-                    }
-            }
-                .onStart { emit(CandleChartUiState.Connecting) }
-                .catch { error ->
+                emit(CandleChartUiState.Connecting)
+                try {
+                    val historicalBars = service.history(currentSelection, currentRange)
+                        .takeLast(MaxVisibleCandles)
+                    emit(CandleChartUiState.Live(historicalBars))
+                    candleStates(currentSelection, historicalBars, emitConnecting = false)
+                        .collect { emit(it) }
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
                     emit(CandleChartUiState.Failed(error.message ?: "Unable to load candles"))
                 }
+            }
         }
+
+    private fun candleStates(
+        selection: CandleSelection,
+        initialBars: List<CandleBar>,
+        emitConnecting: Boolean = true,
+    ): Flow<CandleChartUiState> = flow {
+        var bars = initialBars.takeLast(MaxVisibleCandles)
+        if (emitConnecting) {
+            emit(CandleChartUiState.Connecting)
+        }
+
+        try {
+            service.candleEvents(selection).collect { event ->
+                when (event) {
+                    is RealtimeFeedEvent.Live -> {
+                        bars = bars.upsertByOpenTime(event.value).takeLast(MaxVisibleCandles)
+                        emit(CandleChartUiState.Live(bars))
+                    }
+                    is RealtimeFeedEvent.Reconnecting -> {
+                        if (bars.isEmpty()) {
+                            emit(CandleChartUiState.Connecting)
+                        } else {
+                            emit(CandleChartUiState.Stale(bars, event.reconnectMessage()))
+                        }
+                    }
+                }
+            }
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+            val message = error.message ?: "Unable to load candles"
+            if (bars.isEmpty()) {
+                emit(CandleChartUiState.Failed(message))
+            } else {
+                emit(CandleChartUiState.Stale(bars, message))
+            }
+        }
+    }
 
     private fun List<CandleBar>.upsertByOpenTime(next: CandleBar): List<CandleBar> {
         val existingIndex = indexOfFirst { it.openTimeMillis == next.openTimeMillis }
@@ -75,5 +95,8 @@ class CandleRepository internal constructor(
         }
     }
 }
+
+private fun RealtimeFeedEvent.Reconnecting.reconnectMessage(): String =
+    reason ?: "Reconnecting in ${delayMillis}ms"
 
 private const val MaxVisibleCandles = 500
