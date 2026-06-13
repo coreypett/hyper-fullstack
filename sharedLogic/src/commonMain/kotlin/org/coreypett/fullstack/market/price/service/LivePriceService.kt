@@ -28,7 +28,7 @@ internal interface LivePriceService {
     fun priceEvents(market: MarketSymbol): Flow<RealtimeFeedEvent<LivePrice>>
 
     class Impl(
-        private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
+        private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Shared,
         private val json: Json = HyperliquidJson,
     ) : LivePriceService {
         override fun priceEvents(market: MarketSymbol): Flow<RealtimeFeedEvent<LivePrice>> = flow {

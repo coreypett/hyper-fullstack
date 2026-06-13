@@ -34,7 +34,7 @@ internal interface OrderBookService {
     fun snapshotEvents(selection: OrderBookSelection): Flow<RealtimeFeedEvent<OrderBookSnapshot>>
 
     class Impl(
-        private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
+        private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Shared,
         private val json: Json = HyperliquidJson,
     ) : OrderBookService {
         override fun snapshotEvents(selection: OrderBookSelection): Flow<RealtimeFeedEvent<OrderBookSnapshot>> = flow {

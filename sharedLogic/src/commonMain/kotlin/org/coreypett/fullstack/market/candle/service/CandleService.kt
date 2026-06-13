@@ -43,7 +43,7 @@ internal interface CandleService {
     ): List<CandleBar>
 
     class Impl(
-        private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
+        private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Shared,
         private val infoClient: HyperliquidInfoClient = HyperliquidInfoClient.Impl(),
         private val json: Json = HyperliquidJson,
     ) : CandleService {
