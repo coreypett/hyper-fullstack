@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.coreypett.fullstack.orderbook.model.LevelChange
-import org.coreypett.fullstack.orderbook.model.MarketSymbol
+import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.orderbook.model.OrderBookLevel
 import org.coreypett.fullstack.orderbook.model.OrderBookSelection
 import org.coreypett.fullstack.orderbook.model.OrderBookSide

@@ -1,6 +1,7 @@
 package org.coreypett.fullstack.orderbook.model
 
 import org.coreypett.fullstack.market.MarketNumberFormatter
+import org.coreypett.fullstack.market.model.MarketSymbol
 
 data class OrderBookSnapshot(
     val market: MarketSymbol,
