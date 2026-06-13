@@ -39,6 +39,5 @@ This project keeps the assignment-critical trading logic in KMP while leaving th
 
 1. Add a SwiftUI `OrderBookViewModel` wrapper around `OrderBookRepository`.
 2. Build the native iOS order book view with `ScrollView` or `List`, segmented controls, row depth bars, flash animations, and selection haptics.
-3. Add lightweight parser tests with captured `l2Book` frames.
-4. Consider websocket multiplexing if order book, candles, and prices need to run concurrently on one socket.
-5. Configure `iosApp/.env`, then run `cd iosApp && bundle exec fastlane ios sync_development_signing`.
+3. Add websocket multiplexing for concurrent order book, candle, and price feeds.
+4. Configure `iosApp/.env`, then run `cd iosApp && bundle exec fastlane ios sync_development_signing`.
