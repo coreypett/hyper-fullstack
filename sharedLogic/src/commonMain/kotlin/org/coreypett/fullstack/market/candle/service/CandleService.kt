@@ -6,11 +6,16 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.coreypett.fullstack.market.candle.dto.CandleDto
+import org.coreypett.fullstack.market.candle.dto.CandleSnapshotReqDto
+import org.coreypett.fullstack.market.candle.dto.CandleSnapshotRequestDto
 import org.coreypett.fullstack.market.candle.dto.CandleSubscriptionDto
 import org.coreypett.fullstack.market.candle.model.CandleBar
+import org.coreypett.fullstack.market.candle.model.CandleHistoryRange
 import org.coreypett.fullstack.market.candle.model.CandleSelection
+import org.coreypett.fullstack.network.HyperliquidInfoClient
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
@@ -18,15 +23,33 @@ import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
 /**
  * Shared candle stream service backed by Hyperliquid's `candle` WebSocket feed.
  *
- * Docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ * Stream docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
+ * Snapshot docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint
  */
 internal interface CandleService {
     fun candles(selection: CandleSelection): Flow<CandleBar>
 
+    suspend fun history(
+        selection: CandleSelection,
+        range: CandleHistoryRange,
+    ): List<CandleBar>
+
     class Impl(
         private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Impl(),
+        private val infoClient: HyperliquidInfoClient = HyperliquidInfoClient.Impl(),
         private val json: Json = HyperliquidJson,
     ) : CandleService {
+        override suspend fun history(
+            selection: CandleSelection,
+            range: CandleHistoryRange,
+        ): List<CandleBar> {
+            val response = infoClient.post(
+                request = candleSnapshotRequest(selection, range),
+                serializer = CandleSnapshotRequestDto.serializer(),
+            )
+            return parseHistory(response, selection)
+        }
+
         override fun candles(selection: CandleSelection): Flow<CandleBar> = flow {
             webSocketClient.subscribe(
                 subscription = candleSubscription(selection),
@@ -35,6 +58,13 @@ internal interface CandleService {
                 parseCandles(text, selection).forEach { emit(it) }
             }
         }
+
+        internal fun parseHistory(data: JsonElement, selection: CandleSelection): List<CandleBar> =
+            json.decodeFromJsonElement(ListSerializer(CandleDto.serializer()), data)
+                .mapNotNull { candle ->
+                    candle.toCandleBar(selection)
+                }
+                .sortedBy(CandleBar::openTimeMillis)
 
         internal fun parseCandles(text: String, selection: CandleSelection): List<CandleBar> {
             val envelope = json.decodeFromString(HyperliquidWebSocketEnvelopeDto.serializer(), text)
@@ -76,7 +106,22 @@ internal interface CandleService {
                 coin = selection.market.wireName,
                 interval = selection.interval.wireName,
             )
+
+        private fun candleSnapshotRequest(
+            selection: CandleSelection,
+            range: CandleHistoryRange,
+        ): CandleSnapshotRequestDto =
+            CandleSnapshotRequestDto(
+                type = CandleSnapshotRequestType,
+                req = CandleSnapshotReqDto(
+                    coin = selection.market.wireName,
+                    interval = selection.interval.wireName,
+                    startTime = range.startTimeMillis,
+                    endTime = range.endTimeMillis,
+                ),
+            )
     }
 }
 
 private const val CandleSubscriptionType = "candle"
+private const val CandleSnapshotRequestType = "candleSnapshot"
