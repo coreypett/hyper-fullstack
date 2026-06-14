@@ -12,6 +12,7 @@ data class OrderBookSnapshot(
 ) {
     val bestBid: OrderBookLevel? = bids.firstOrNull()
     val bestAsk: OrderBookLevel? = asks.firstOrNull()
+    val midPrice: Double? = bestAsk?.let { ask -> bestBid?.let { bid -> (ask.price + bid.price) / 2 } }
     val spread: Double? = bestAsk?.let { ask -> bestBid?.let { bid -> ask.price - bid.price } }
     val spreadText: String = spread?.let(MarketNumberFormatter::price) ?: "--"
 }

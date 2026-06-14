@@ -1,5 +1,6 @@
 package org.coreypett.fullstack.orderbook.presentation
 
+import org.coreypett.fullstack.market.MarketNumberFormatter
 import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.orderbook.model.OrderBookLevel
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
@@ -10,6 +11,7 @@ data class OrderBookViewState(
     val status: OrderBookStatus,
     val statusLabel: String,
     val centerMessage: String?,
+    val midPriceText: String?,
     val spreadText: String?,
     val asks: List<OrderBookRowDisplay>,
     val bids: List<OrderBookRowDisplay>,
@@ -21,6 +23,7 @@ data class OrderBookViewState(
             status = OrderBookStatus.Connecting,
             statusLabel = "Connecting",
             centerMessage = "Connecting",
+            midPriceText = null,
             spreadText = null,
             asks = emptyList(),
             bids = emptyList(),
@@ -32,6 +35,7 @@ data class OrderBookViewState(
                 status = OrderBookStatus.Failed,
                 statusLabel = "Disconnected",
                 centerMessage = uiState.message,
+                midPriceText = null,
                 spreadText = null,
                 asks = emptyList(),
                 bids = emptyList(),
@@ -70,6 +74,7 @@ private fun OrderBookSnapshot.toViewState(
     status = status,
     statusLabel = statusLabel,
     centerMessage = centerMessage,
+    midPriceText = midPrice?.let(MarketNumberFormatter::price),
     spreadText = spreadText,
     asks = asks.asReversed().map(OrderBookLevel::toRowDisplay),
     bids = bids.map(OrderBookLevel::toRowDisplay),
