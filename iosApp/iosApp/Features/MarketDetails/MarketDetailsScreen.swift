@@ -33,7 +33,10 @@ struct MarketDetailsScreen: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
 
-                MarketSummarySection(state: viewModel.summary)
+                MarketSummarySection(
+                    selectedMarket: viewModel.selection.market,
+                    state: viewModel.summary
+                )
                     .padding(.horizontal, 16)
 
                 MarketChartSection(

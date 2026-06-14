@@ -95,11 +95,16 @@ enum MarketChangeDirection {
 }
 
 struct MarketSummarySection: View {
+    let selectedMarket: MarketSymbol
     let state: MarketSummaryState
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
+                MarketLeadRow(
+                    selectedMarket: selectedMarket
+                )
+
                 if state.isMidPriceLoading {
                     SkeletonBlock(width: 210, height: 42, cornerRadius: 6)
                         .transition(.movingParts.blur.combined(with: .opacity))
@@ -132,7 +137,7 @@ struct MarketSummarySection: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(minHeight: 76, alignment: .center)
+            .frame(minHeight: 84, alignment: .center)
             .animation(.easeInOut(duration: 0.22), value: state.isMidPriceLoading)
             .animation(.easeInOut(duration: 0.22), value: state.isChangeLoading)
 
@@ -142,9 +147,22 @@ struct MarketSummarySection: View {
                 }
             }
             .frame(width: 154, alignment: .trailing)
-            .frame(minHeight: 76, alignment: .center)
+            .frame(minHeight: 84, alignment: .center)
         }
         .padding(.vertical, 2)
+    }
+}
+
+private struct MarketLeadRow: View {
+    let selectedMarket: MarketSymbol
+
+    var body: some View {
+        Text("\(selectedMarket.displayName)-USD")
+            .font(.system(size: 13, weight: .medium, design: .rounded))
+            .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
