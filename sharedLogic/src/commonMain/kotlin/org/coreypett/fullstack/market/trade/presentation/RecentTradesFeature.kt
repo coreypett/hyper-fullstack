@@ -16,34 +16,34 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.coreypett.fullstack.market.model.MarketSymbol
-import org.coreypett.fullstack.market.trade.model.TradeSelection
-import org.coreypett.fullstack.market.trade.model.TradeUiState
-import org.coreypett.fullstack.market.trade.repository.TradeRepository
+import org.coreypett.fullstack.market.trade.model.RecentTradesSelection
+import org.coreypett.fullstack.market.trade.model.RecentTradesUiState
+import org.coreypett.fullstack.market.trade.repository.RecentTradesRepository
 
-class TradeFeature(
-    repository: TradeRepository,
+class RecentTradesFeature(
+    repository: RecentTradesRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val selectionMutableState = MutableStateFlow(TradeSelection())
+    private val selectionMutableState = MutableStateFlow(RecentTradesSelection())
     private var observerJob: Job? = null
 
-    val selectionState: StateFlow<TradeSelection> = selectionMutableState.asStateFlow()
+    val selectionState: StateFlow<RecentTradesSelection> = selectionMutableState.asStateFlow()
 
-    val state: StateFlow<TradeViewState> = repository.states(selectionMutableState)
-        .map(TradeViewState::from)
+    val state: StateFlow<RecentTradesViewState> = repository.states(selectionMutableState)
+        .map(RecentTradesViewState::from)
         .stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
-            initialValue = TradeViewState.Connecting,
+            initialValue = RecentTradesViewState.Connecting,
         )
 
-    val selection: TradeSelection
+    val selection: RecentTradesSelection
         get() = selectionState.value
 
-    val currentState: TradeViewState
+    val currentState: RecentTradesViewState
         get() = state.value
 
-    fun observe(observer: (TradeViewState) -> Unit) {
+    fun observe(observer: (RecentTradesViewState) -> Unit) {
         observerJob?.cancel()
         observerJob = scope.launch {
             state.collect { nextState ->
@@ -69,10 +69,10 @@ class TradeFeature(
     }
 
     companion object {
-        fun preview(): TradeFeature = TradeFeature(
-            repository = object : TradeRepository {
-                override fun states(selection: StateFlow<TradeSelection>): Flow<TradeUiState> =
-                    flowOf(TradeUiState.Connecting)
+        fun preview(): RecentTradesFeature = RecentTradesFeature(
+            repository = object : RecentTradesRepository {
+                override fun states(selection: StateFlow<RecentTradesSelection>): Flow<RecentTradesUiState> =
+                    flowOf(RecentTradesUiState.Connecting)
             },
         )
     }

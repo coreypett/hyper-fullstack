@@ -3,9 +3,9 @@ package org.coreypett.fullstack.market.trade.model
 import org.coreypett.fullstack.market.MarketNumberFormatter
 import org.coreypett.fullstack.market.model.MarketSymbol
 
-data class Trade(
+data class RecentTradesEntry(
     val market: MarketSymbol,
-    val side: TradeSide,
+    val side: RecentTradesSide,
     val price: Double,
     val size: Double,
     val transactionHash: String,

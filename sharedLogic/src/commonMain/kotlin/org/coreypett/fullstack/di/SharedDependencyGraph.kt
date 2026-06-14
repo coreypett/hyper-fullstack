@@ -9,9 +9,9 @@ import org.coreypett.fullstack.market.price.service.LivePriceService
 import org.coreypett.fullstack.market.summary.presentation.MarketSummaryFeature
 import org.coreypett.fullstack.market.summary.repository.MarketSummaryRepository
 import org.coreypett.fullstack.market.summary.service.MarketSummaryService
-import org.coreypett.fullstack.market.trade.presentation.TradeFeature
-import org.coreypett.fullstack.market.trade.repository.TradeRepository
-import org.coreypett.fullstack.market.trade.service.TradeService
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesFeature
+import org.coreypett.fullstack.market.trade.repository.RecentTradesRepository
+import org.coreypett.fullstack.market.trade.service.RecentTradesService
 import org.coreypett.fullstack.network.HyperliquidInfoClient
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
@@ -41,7 +41,7 @@ object SharedDependencyGraph {
 
     fun marketSummaryRepository(): MarketSummaryRepository = ensureKoin().get()
 
-    fun tradeRepository(): TradeRepository = ensureKoin().get()
+    fun recentTradesRepository(): RecentTradesRepository = ensureKoin().get()
 
     fun candleChartFeature(): CandleChartFeature = ensureKoin().get()
 
@@ -49,7 +49,7 @@ object SharedDependencyGraph {
 
     fun marketSummaryFeature(): MarketSummaryFeature = ensureKoin().get()
 
-    fun tradeFeature(): TradeFeature = ensureKoin().get()
+    fun recentTradesFeature(): RecentTradesFeature = ensureKoin().get()
 
     private fun ensureKoin(): Koin {
         val context = KoinPlatformTools.defaultContext()
@@ -96,8 +96,8 @@ private val serviceModule = module {
             json = get(),
         )
     }
-    single<TradeService> {
-        TradeService.Impl(
+    single<RecentTradesService> {
+        RecentTradesService.Impl(
             webSocketClient = get(),
             json = get(),
         )
@@ -109,14 +109,14 @@ private val repositoryModule = module {
     single<CandleRepository> { CandleRepository.Impl(service = get()) }
     single<LivePriceRepository> { LivePriceRepository.Impl(service = get()) }
     single<MarketSummaryRepository> { MarketSummaryRepository.Impl(service = get()) }
-    single<TradeRepository> { TradeRepository.Impl(service = get()) }
+    single<RecentTradesRepository> { RecentTradesRepository.Impl(service = get()) }
 }
 
 private val presentationModule = module {
     factory { CandleChartFeature(repository = get()) }
     factory { OrderBookFeature(repository = get()) }
     factory { MarketSummaryFeature(repository = get()) }
-    factory { TradeFeature(repository = get()) }
+    factory { RecentTradesFeature(repository = get()) }
 }
 
 internal val sharedLogicModules = listOf(

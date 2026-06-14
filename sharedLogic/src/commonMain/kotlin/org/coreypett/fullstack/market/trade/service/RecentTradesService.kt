@@ -9,9 +9,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.coreypett.fullstack.market.trade.dto.TradesSubscriptionDto
 import org.coreypett.fullstack.market.trade.dto.WsTradeDto
-import org.coreypett.fullstack.market.trade.model.Trade
-import org.coreypett.fullstack.market.trade.model.TradeSelection
-import org.coreypett.fullstack.market.trade.model.TradeSide
+import org.coreypett.fullstack.market.trade.model.RecentTradesEntry
+import org.coreypett.fullstack.market.trade.model.RecentTradesSelection
+import org.coreypett.fullstack.market.trade.model.RecentTradesSide
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEnvelopeDto
@@ -23,19 +23,19 @@ import org.coreypett.fullstack.network.RealtimeFeedEvent
  *
  * Docs: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/websocket/subscriptions
  */
-internal interface TradeService {
-    fun trades(selection: TradeSelection): Flow<List<Trade>> =
-        tradeEvents(selection).mapNotNull { event ->
+internal interface RecentTradesService {
+    fun recentTrades(selection: RecentTradesSelection): Flow<List<RecentTradesEntry>> =
+        recentTradesEvents(selection).mapNotNull { event ->
             (event as? RealtimeFeedEvent.Live)?.value
         }
 
-    fun tradeEvents(selection: TradeSelection): Flow<RealtimeFeedEvent<List<Trade>>>
+    fun recentTradesEvents(selection: RecentTradesSelection): Flow<RealtimeFeedEvent<List<RecentTradesEntry>>>
 
     class Impl(
         private val webSocketClient: HyperliquidWebSocketClient = HyperliquidWebSocketClient.Shared,
         private val json: Json = HyperliquidJson,
-    ) : TradeService {
-        override fun tradeEvents(selection: TradeSelection): Flow<RealtimeFeedEvent<List<Trade>>> = flow {
+    ) : RecentTradesService {
+        override fun recentTradesEvents(selection: RecentTradesSelection): Flow<RealtimeFeedEvent<List<RecentTradesEntry>>> = flow {
             webSocketClient.subscribeEvents(
                 subscription = tradesSubscription(selection),
                 serializer = TradesSubscriptionDto.serializer(),
@@ -55,8 +55,8 @@ internal interface TradeService {
 
         private fun parseTrades(
             text: String,
-            selection: TradeSelection,
-        ): List<Trade> {
+            selection: RecentTradesSelection,
+        ): List<RecentTradesEntry> {
             val envelope = json.decodeFromString(HyperliquidWebSocketEnvelopeDto.serializer(), text)
             if (envelope.channel != TradesSubscriptionType) return emptyList()
 
@@ -68,7 +68,7 @@ internal interface TradeService {
                 .toList()
         }
 
-        private fun tradesSubscription(selection: TradeSelection): TradesSubscriptionDto =
+        private fun tradesSubscription(selection: RecentTradesSelection): TradesSubscriptionDto =
             TradesSubscriptionDto(
                 type = TradesSubscriptionType,
                 coin = selection.market.wireName,
@@ -76,10 +76,10 @@ internal interface TradeService {
     }
 }
 
-private fun WsTradeDto.toModel(selection: TradeSelection): Trade =
-    Trade(
+private fun WsTradeDto.toModel(selection: RecentTradesSelection): RecentTradesEntry =
+    RecentTradesEntry(
         market = selection.market,
-        side = side.toTradeSide(),
+        side = side.toRecentTradesSide(),
         price = price,
         size = size,
         transactionHash = hash,
@@ -89,10 +89,10 @@ private fun WsTradeDto.toModel(selection: TradeSelection): Trade =
         seller = users.getOrNull(1),
     )
 
-private fun String.toTradeSide(): TradeSide = when (this) {
-    "B" -> TradeSide.Buy
-    "A" -> TradeSide.Sell
-    else -> TradeSide.Unknown
+private fun String.toRecentTradesSide(): RecentTradesSide = when (this) {
+    "B" -> RecentTradesSide.Buy
+    "A" -> RecentTradesSide.Sell
+    else -> RecentTradesSide.Unknown
 }
 
 private fun HyperliquidWebSocketEvent.Reconnecting.toRealtimeFeedEvent(): RealtimeFeedEvent.Reconnecting =

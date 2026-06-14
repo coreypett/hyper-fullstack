@@ -8,16 +8,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.KSerializer
 import org.coreypett.fullstack.market.model.MarketSymbol
-import org.coreypett.fullstack.market.trade.model.TradeSelection
-import org.coreypett.fullstack.market.trade.model.TradeSide
-import org.coreypett.fullstack.market.trade.service.TradeService
+import org.coreypett.fullstack.market.trade.model.RecentTradesSelection
+import org.coreypett.fullstack.market.trade.model.RecentTradesSide
+import org.coreypett.fullstack.market.trade.service.RecentTradesService
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
 import org.coreypett.fullstack.network.HyperliquidWebSocketEvent
 
-class TradeServiceParserTest {
+class RecentTradesServiceParserTest {
     @Test
     fun parsesCapturedTradesFrame() = runBlocking {
-        val service = TradeService.Impl(
+        val service = RecentTradesService.Impl(
             webSocketClient = FakeWebSocketClient(
                 tradesFrame(
                     coin = "BTC",
@@ -49,11 +49,11 @@ class TradeServiceParserTest {
             ),
         )
 
-        val trades = service.trades(TradeSelection(market = MarketSymbol.BTC)).first()
+        val trades = service.recentTrades(RecentTradesSelection(market = MarketSymbol.BTC)).first()
 
         assertEquals(2, trades.size)
         assertEquals(MarketSymbol.BTC, trades[0].market)
-        assertEquals(TradeSide.Buy, trades[0].side)
+        assertEquals(RecentTradesSide.Buy, trades[0].side)
         assertEquals(69125.5, trades[0].price)
         assertEquals(0.42, trades[0].size)
         assertEquals("0xabc", trades[0].transactionHash)
@@ -61,12 +61,12 @@ class TradeServiceParserTest {
         assertEquals(42, trades[0].tradeId)
         assertEquals("0xbuyer", trades[0].buyer)
         assertEquals("0xseller", trades[0].seller)
-        assertEquals(TradeSide.Sell, trades[1].side)
+        assertEquals(RecentTradesSide.Sell, trades[1].side)
     }
 
     @Test
     fun filtersWrongChannelAndCoin() = runBlocking {
-        val service = TradeService.Impl(
+        val service = RecentTradesService.Impl(
             webSocketClient = FakeWebSocketClient(
                 """
                     {
@@ -79,7 +79,7 @@ class TradeServiceParserTest {
             ),
         )
 
-        val trades = service.trades(TradeSelection(market = MarketSymbol.BTC)).first()
+        val trades = service.recentTrades(RecentTradesSelection(market = MarketSymbol.BTC)).first()
 
         assertEquals(1, trades.size)
         assertEquals(MarketSymbol.BTC, trades.single().market)
