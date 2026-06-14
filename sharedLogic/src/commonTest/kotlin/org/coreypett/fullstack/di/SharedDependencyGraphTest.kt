@@ -17,5 +17,6 @@ class SharedDependencyGraphTest {
         assertNotNull(SharedDependencyGraph.orderBookRepository())
         assertNotNull(SharedDependencyGraph.candleRepository())
         assertNotNull(SharedDependencyGraph.livePriceRepository())
+        assertNotNull(SharedDependencyGraph.candleChartFeature())
     }
 }

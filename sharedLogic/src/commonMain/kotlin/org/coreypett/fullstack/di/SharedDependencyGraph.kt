@@ -1,6 +1,7 @@
 package org.coreypett.fullstack.di
 
 import kotlinx.serialization.json.Json
+import org.coreypett.fullstack.market.candle.presentation.CandleChartFeature
 import org.coreypett.fullstack.market.candle.repository.CandleRepository
 import org.coreypett.fullstack.market.candle.service.CandleService
 import org.coreypett.fullstack.market.price.repository.LivePriceRepository
@@ -31,6 +32,8 @@ object SharedDependencyGraph {
     fun candleRepository(): CandleRepository = ensureKoin().get()
 
     fun livePriceRepository(): LivePriceRepository = ensureKoin().get()
+
+    fun candleChartFeature(): CandleChartFeature = ensureKoin().get()
 
     fun orderBookFeature(): OrderBookFeature = ensureKoin().get()
 
@@ -81,6 +84,7 @@ private val repositoryModule = module {
 }
 
 private val presentationModule = module {
+    factory { CandleChartFeature(repository = get()) }
     factory { OrderBookFeature(repository = get()) }
 }
 
