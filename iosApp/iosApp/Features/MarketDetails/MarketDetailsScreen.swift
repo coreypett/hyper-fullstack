@@ -389,12 +389,12 @@ private struct MarketSummarySection: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .trailing, spacing: 8) {
+            VStack(alignment: .trailing, spacing: 7) {
                 ForEach(state.stats, id: \.self) { stat in
                     MarketStatRow(stat: stat)
                 }
             }
-            .frame(width: 112, alignment: .trailing)
+            .frame(width: 154, alignment: .trailing)
         }
         .padding(.vertical, 2)
     }
@@ -404,11 +404,13 @@ private struct MarketStatRow: View {
     let stat: MarketStat
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 2) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(stat.label)
                 .font(.system(size: 11))
                 .foregroundStyle(AppColors.textTertiary)
                 .lineLimit(1)
+
+            Spacer(minLength: 8)
 
             Text(stat.value)
                 .font(.system(size: 13, weight: .medium, design: .monospaced))
@@ -416,6 +418,7 @@ private struct MarketStatRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
