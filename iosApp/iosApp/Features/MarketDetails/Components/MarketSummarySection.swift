@@ -41,14 +41,13 @@ struct MarketSummaryState {
         let volume24hText = marketSummary?.volume24hText
         let high24hText = marketSummary?.high24hText
         let low24hText = marketSummary?.low24hText
-        var stats = [
+        let openInterestText = marketSummary?.openInterestText
+        let stats = [
             MarketStat(label: "24h Vol", value: volume24hText ?? "", isLoading: volume24hText == nil),
             MarketStat(label: "24h High", value: high24hText ?? "", isLoading: high24hText == nil),
             MarketStat(label: "24h Low", value: low24hText ?? "", isLoading: low24hText == nil),
+            MarketStat(label: "Open Int.", value: openInterestText ?? "", isLoading: openInterestText == nil),
         ]
-        if let openInterestText = marketSummary?.openInterestText {
-            stats.append(MarketStat(label: "Open Int.", value: openInterestText, isLoading: false))
-        }
         self.stats = stats
     }
 
@@ -157,7 +156,7 @@ private struct MarketLeadRow: View {
     let selectedMarket: MarketSymbol
 
     var body: some View {
-        Text("\(selectedMarket.displayName)-USD")
+        Text("\(selectedMarket.displayName)-USDC")
             .font(.system(size: 13, weight: .medium, design: .rounded))
             .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
             .lineLimit(1)
