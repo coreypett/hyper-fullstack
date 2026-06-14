@@ -77,6 +77,7 @@ fun MarketChartSection(
         IntervalSelector(
             selectedInterval = selectedInterval,
             onIntervalSelected = onIntervalSelected,
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
         Box(
             modifier = Modifier
@@ -157,9 +158,10 @@ private fun ChartSkeleton(
 private fun IntervalSelector(
     selectedInterval: CandleInterval,
     onIntervalSelected: (CandleInterval) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -274,7 +276,7 @@ private fun LightweightCandleChart(
                                         borderVisible = false,
                                         timeVisible = true,
                                         secondsVisible = false,
-                                        rightOffset = 4f,
+                                        rightOffset = 0f,
                                         barSpacing = 8f,
                                         minBarSpacing = 5f,
                                         shiftVisibleRangeOnNewBar = true,

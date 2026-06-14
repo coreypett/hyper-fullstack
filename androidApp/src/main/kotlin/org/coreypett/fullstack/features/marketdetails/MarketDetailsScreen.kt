@@ -99,16 +99,18 @@ fun MarketDetailsScreen(
             .background(MR.colors.app_background.toComposeColor())
             .safeContentPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         MarketTabs(
             selectedMarket = state.selectedMarket,
             onMarketSelected = callbacks.onMarketSelected,
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
         MarketSummarySection(
             selectedMarket = state.selectedMarket,
             summaryState = state.summaryState,
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
         MarketChartSection(
             selectedInterval = state.selectedInterval,
@@ -123,6 +125,7 @@ fun MarketDetailsScreen(
             recentTradesState = state.recentTradesState,
             onPanelSelected = callbacks.onPanelSelected,
             onPrecisionSelected = callbacks.onPrecisionSelected,
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
         Spacer(Modifier.height(8.dp))
     }

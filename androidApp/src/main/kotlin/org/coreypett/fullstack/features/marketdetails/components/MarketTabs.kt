@@ -32,9 +32,10 @@ import org.coreypett.fullstack.support.tokenIconResource
 fun MarketTabs(
     selectedMarket: MarketSymbol,
     onMarketSelected: (MarketSymbol) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {

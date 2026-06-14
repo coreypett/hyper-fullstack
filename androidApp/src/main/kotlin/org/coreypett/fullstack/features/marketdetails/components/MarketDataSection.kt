@@ -46,9 +46,10 @@ fun MarketDataSection(
     recentTradesState: RecentTradesViewState,
     onPanelSelected: (MarketDetailsPanel) -> Unit,
     onPrecisionSelected: (PricePrecision) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(MR.colors.app_background.toComposeColor()),
         verticalArrangement = Arrangement.spacedBy(12.dp),

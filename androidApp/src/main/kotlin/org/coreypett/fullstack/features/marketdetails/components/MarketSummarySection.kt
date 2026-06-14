@@ -35,11 +35,12 @@ import org.coreypett.fullstack.support.toComposeColor
 fun MarketSummarySection(
     selectedMarket: MarketSymbol,
     summaryState: MarketSummaryViewState,
+    modifier: Modifier = Modifier,
 ) {
     val midPriceText = summaryState.midPriceText
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(MR.colors.app_background.toComposeColor())
             .padding(vertical = 2.dp),
