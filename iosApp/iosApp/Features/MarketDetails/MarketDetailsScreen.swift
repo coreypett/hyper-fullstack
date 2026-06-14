@@ -1,4 +1,5 @@
 @preconcurrency import LightweightCharts
+import Pow
 @preconcurrency import SharedLogic
 import SwiftUI
 import UIKit
@@ -9,6 +10,7 @@ final class MarketDetailsViewModel: ObservableObject {
     @Published private(set) var chartInterval: CandleInterval
     @Published private(set) var summary: MarketSummaryState
     @Published private(set) var chartBars: [MarketChartBar]
+    @Published private(set) var isChartLoading: Bool
     @Published private(set) var orderBook: OrderBookState
 
     private let orderBookFeature: OrderBookFeature?
@@ -44,7 +46,8 @@ final class MarketDetailsViewModel: ObservableObject {
                 livePriceText: latestCandlePriceText
             )
         self.chartBars = candleChartFeature == nil ? MarketChartBar.preview : initialCandles.map(MarketChartBar.init)
-        self.orderBook = initialOrderBook.map(OrderBookState.init) ?? .preview
+        self.isChartLoading = candleChartFeature != nil && initialCandles.isEmpty
+        self.orderBook = orderBookFeature == nil ? .preview : initialOrderBook.map(OrderBookState.init) ?? .loading
         marketSummaryFeature?.selectMarket(market: initialSelection.market)
 
         orderBookFeature?.observe { [weak self] state in
@@ -66,6 +69,7 @@ final class MarketDetailsViewModel: ObservableObject {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.chartBars = state.bars.map(MarketChartBar.init)
+                self.isChartLoading = state.bars.isEmpty
                 self.latestCandlePriceText = state.bars.last?.closeText
                 self.summary = MarketSummaryState(
                     marketSummary: self.latestMarketSummaryViewState,
@@ -104,12 +108,19 @@ final class MarketDetailsViewModel: ObservableObject {
         orderBookFeature?.selectMarket(market: market)
         candleChartFeature?.selectMarket(market: market)
         marketSummaryFeature?.selectMarket(market: market)
+        latestOrderBookViewState = nil
+        latestMarketSummaryViewState = nil
         latestCandlePriceText = nil
-        summary = MarketSummaryState(
-            marketSummary: latestMarketSummaryViewState,
-            orderBook: latestOrderBookViewState,
-            livePriceText: nil
-        )
+        summary = marketSummaryFeature == nil && orderBookFeature == nil
+            ? .preview
+            : MarketSummaryState(
+                marketSummary: nil,
+                orderBook: nil,
+                livePriceText: nil
+            )
+        chartBars = candleChartFeature == nil ? MarketChartBar.preview : []
+        isChartLoading = candleChartFeature != nil
+        orderBook = orderBookFeature == nil ? .preview : .loading
         selection = selection.doCopy(market: market, precision: selection.precision)
     }
 
@@ -134,6 +145,8 @@ struct MarketSummaryState {
     let priceChangePercentText: String
     let changeDirection: MarketChangeDirection
     let stats: [MarketStat]
+    let isMidPriceLoading: Bool
+    let isChangeLoading: Bool
 
     static let preview = MarketSummaryState(
         midPriceText: "$69,125.75",
@@ -141,10 +154,10 @@ struct MarketSummaryState {
         priceChangePercentText: "+1.81%",
         changeDirection: .up,
         stats: [
-            MarketStat(label: "24h Vol", value: "$4.82B"),
-            MarketStat(label: "24h High", value: "$70,184"),
-            MarketStat(label: "24h Low", value: "$67,914.50"),
-            MarketStat(label: "Open Int.", value: "28.42K"),
+            MarketStat(label: "24h Vol", value: "$4.82B", isLoading: false),
+            MarketStat(label: "24h High", value: "$70,184", isLoading: false),
+            MarketStat(label: "24h Low", value: "$67,914.50", isLoading: false),
+            MarketStat(label: "Open Int.", value: "28.42K", isLoading: false),
         ]
     )
 
@@ -153,17 +166,25 @@ struct MarketSummaryState {
         orderBook: OrderBookViewState?,
         livePriceText: String? = nil
     ) {
-        self.midPriceText = livePriceText ?? marketSummary?.midPriceText ?? orderBook?.midPriceText ?? "--"
-        self.priceChangeText = marketSummary?.priceChangeText ?? "--"
-        self.priceChangePercentText = marketSummary?.priceChangePercentText ?? "--"
+        let midPriceText = livePriceText ?? marketSummary?.midPriceText ?? orderBook?.midPriceText
+        let priceChangeText = marketSummary?.priceChangeText
+        let priceChangePercentText = marketSummary?.priceChangePercentText
+        self.midPriceText = midPriceText ?? ""
+        self.priceChangeText = priceChangeText ?? ""
+        self.priceChangePercentText = priceChangePercentText ?? ""
         self.changeDirection = MarketSummaryState.changeDirection(from: marketSummary?.changeDirection)
+        self.isMidPriceLoading = midPriceText == nil
+        self.isChangeLoading = priceChangeText == nil || priceChangePercentText == nil
+        let volume24hText = marketSummary?.volume24hText
+        let high24hText = marketSummary?.high24hText
+        let low24hText = marketSummary?.low24hText
         var stats = [
-            MarketStat(label: "24h Vol", value: marketSummary?.volume24hText ?? "--"),
-            MarketStat(label: "24h High", value: marketSummary?.high24hText ?? "--"),
-            MarketStat(label: "24h Low", value: marketSummary?.low24hText ?? "--"),
+            MarketStat(label: "24h Vol", value: volume24hText ?? "", isLoading: volume24hText == nil),
+            MarketStat(label: "24h High", value: high24hText ?? "", isLoading: high24hText == nil),
+            MarketStat(label: "24h Low", value: low24hText ?? "", isLoading: low24hText == nil),
         ]
         if let openInterestText = marketSummary?.openInterestText {
-            stats.append(MarketStat(label: "Open Int.", value: openInterestText))
+            stats.append(MarketStat(label: "Open Int.", value: openInterestText, isLoading: false))
         }
         self.stats = stats
     }
@@ -173,13 +194,17 @@ struct MarketSummaryState {
         priceChangeText: String,
         priceChangePercentText: String,
         changeDirection: MarketChangeDirection,
-        stats: [MarketStat]
+        stats: [MarketStat],
+        isMidPriceLoading: Bool = false,
+        isChangeLoading: Bool = false
     ) {
         self.midPriceText = midPriceText
         self.priceChangeText = priceChangeText
         self.priceChangePercentText = priceChangePercentText
         self.changeDirection = changeDirection
         self.stats = stats
+        self.isMidPriceLoading = isMidPriceLoading
+        self.isChangeLoading = isChangeLoading
     }
 
     private static func changeDirection(from shared: MarketSummaryChangeDirection?) -> MarketChangeDirection {
@@ -197,6 +222,7 @@ struct MarketSummaryState {
 struct MarketStat: Hashable {
     let label: String
     let value: String
+    let isLoading: Bool
 }
 
 enum MarketChangeDirection {
@@ -259,6 +285,7 @@ struct OrderBookState {
     let spreadText: String?
     let asks: [OrderBookRow]
     let bids: [OrderBookRow]
+    let isLoading: Bool
 
     var hasRows: Bool {
         !asks.isEmpty || !bids.isEmpty
@@ -289,7 +316,18 @@ struct OrderBookState {
             OrderBookRow(side: .bid, priceText: "$69,125.50", sizeText: "1.25", orderCountText: "3", depthFraction: 1.0, change: .none),
             OrderBookRow(side: .bid, priceText: "$69,124", sizeText: "0.50", orderCountText: "1", depthFraction: 0.4, change: .up),
             OrderBookRow(side: .bid, priceText: "$69,123.50", sizeText: "0.25", orderCountText: "2", depthFraction: 0.2, change: .none),
-        ]
+        ],
+        isLoading: false
+    )
+
+    static let loading = OrderBookState(
+        status: .connecting,
+        statusLabel: "Connecting",
+        centerMessage: nil,
+        spreadText: nil,
+        asks: [],
+        bids: [],
+        isLoading: true
     )
 
     init(shared: OrderBookViewState) {
@@ -299,6 +337,7 @@ struct OrderBookState {
         self.spreadText = shared.spreadText
         self.asks = shared.asks.map(OrderBookRow.init)
         self.bids = shared.bids.map(OrderBookRow.init)
+        self.isLoading = shared.status == .connecting && !shared.hasRows
     }
 
     init(
@@ -307,7 +346,8 @@ struct OrderBookState {
         centerMessage: String?,
         spreadText: String?,
         asks: [OrderBookRow],
-        bids: [OrderBookRow]
+        bids: [OrderBookRow],
+        isLoading: Bool
     ) {
         self.status = status
         self.statusLabel = statusLabel
@@ -315,6 +355,7 @@ struct OrderBookState {
         self.spreadText = spreadText
         self.asks = asks
         self.bids = bids
+        self.isLoading = isLoading
     }
 }
 
@@ -381,6 +422,7 @@ struct MarketDetailsScreen: View {
                     market: viewModel.selection.market,
                     selectedInterval: viewModel.chartInterval,
                     bars: viewModel.chartBars,
+                    isLoading: viewModel.isChartLoading,
                     onSelectInterval: viewModel.selectChartInterval
                 )
 
@@ -450,6 +492,7 @@ private struct MarketTabButton: View {
             )
         }
         .buttonStyle(.plain)
+        .changeEffect(.shine(duration: 0.45), value: isSelected, isEnabled: isSelected)
     }
 }
 
@@ -459,26 +502,41 @@ private struct MarketSummarySection: View {
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(state.midPriceText)
-                    .font(.system(size: 36, weight: .semibold, design: .rounded))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.52)
-                    .allowsTightening(true)
-                    .contentTransition(.numericText())
-                    .animation(.easeInOut(duration: 0.18), value: state.midPriceText)
-
-                HStack(spacing: 8) {
-                    Text(state.priceChangeText)
-                    Text(state.priceChangePercentText)
+                if state.isMidPriceLoading {
+                    SkeletonBlock(width: 210, height: 42, cornerRadius: 6)
+                        .transition(.movingParts.blur.combined(with: .opacity))
+                } else {
+                    Text(state.midPriceText)
+                        .font(.system(size: 36, weight: .semibold, design: .rounded))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.52)
+                        .allowsTightening(true)
+                        .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.18), value: state.midPriceText)
+                        .changeEffect(.shine(duration: 0.7), value: state.midPriceText)
+                        .transition(.movingParts.blur.combined(with: .opacity))
                 }
-                .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                .foregroundStyle(changeColor(for: state.changeDirection))
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
+
+                if state.isChangeLoading {
+                    SkeletonBlock(width: 132, height: 18, cornerRadius: 4)
+                        .transition(.movingParts.blur.combined(with: .opacity))
+                } else {
+                    HStack(spacing: 8) {
+                        Text(state.priceChangeText)
+                        Text(state.priceChangePercentText)
+                    }
+                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(changeColor(for: state.changeDirection))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .transition(.movingParts.blur.combined(with: .opacity))
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(minHeight: 76, alignment: .center)
+            .animation(.easeInOut(duration: 0.22), value: state.isMidPriceLoading)
+            .animation(.easeInOut(duration: 0.22), value: state.isChangeLoading)
 
             VStack(alignment: .trailing, spacing: 4) {
                 ForEach(state.stats, id: \.self) { stat in
@@ -504,13 +562,20 @@ private struct MarketStatRow: View {
 
             Spacer(minLength: 8)
 
-            Text(stat.value)
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .foregroundStyle(AppColors.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+            if stat.isLoading {
+                SkeletonBlock(width: 58, height: 13, cornerRadius: 3)
+                    .transition(.movingParts.blur.combined(with: .opacity))
+            } else {
+                Text(stat.value)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .transition(.movingParts.blur.combined(with: .opacity))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
+        .animation(.easeInOut(duration: 0.22), value: stat.isLoading)
     }
 }
 
@@ -518,6 +583,7 @@ private struct MarketChartSection: View {
     let market: MarketSymbol
     let selectedInterval: CandleInterval
     let bars: [MarketChartBar]
+    let isLoading: Bool
     let onSelectInterval: (CandleInterval) -> Void
 
     var body: some View {
@@ -531,9 +597,16 @@ private struct MarketChartSection: View {
             ZStack {
                 ChartWatermark(market: market)
 
-                MarketCandlestickChart(bars: bars)
+                if isLoading {
+                    ChartSkeleton()
+                        .transition(.movingParts.blur.combined(with: .opacity))
+                } else {
+                    MarketCandlestickChart(bars: bars)
+                        .transition(.movingParts.blur.combined(with: .opacity))
+                }
             }
                 .frame(height: 260)
+                .animation(.easeInOut(duration: 0.22), value: isLoading)
         }
     }
 }
@@ -651,13 +724,19 @@ private struct OrderBookSection: View {
                 .frame(width: 164)
             }
 
-            if orderBook.hasRows {
+            if orderBook.isLoading {
+                OrderBookSkeleton()
+                    .transition(.movingParts.blur.combined(with: .opacity))
+            } else if orderBook.hasRows {
                 OrderBookList(orderBook: orderBook)
+                    .transition(.movingParts.blur.combined(with: .opacity))
             } else {
                 CenterMessage(text: orderBook.centerMessage ?? "Connecting")
                     .frame(height: 220)
+                    .transition(.movingParts.blur.combined(with: .opacity))
             }
         }
+        .animation(.easeInOut(duration: 0.22), value: orderBook.isLoading)
     }
 }
 
@@ -914,6 +993,124 @@ private struct CenterMessage: View {
             .foregroundStyle(AppColors.textSecondary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct ChartSkeleton: View {
+    private let bars: [CGFloat] = [0.42, 0.66, 0.54, 0.76, 0.48, 0.58, 0.82, 0.62, 0.44, 0.7, 0.52, 0.64]
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
+            let spacing: CGFloat = 8
+            let barWidth = max((width - CGFloat(bars.count - 1) * spacing - 32) / CGFloat(bars.count), 8)
+
+            HStack(alignment: .bottom, spacing: spacing) {
+                ForEach(Array(bars.enumerated()), id: \.offset) { index, fraction in
+                    VStack(spacing: 4) {
+                        SkeletonBlock(width: 2, height: height * 0.22, cornerRadius: 1)
+
+                        SkeletonBlock(
+                            width: barWidth,
+                            height: max(height * fraction * 0.42, 28),
+                            cornerRadius: 3
+                        )
+                        .opacity(index.isMultiple(of: 2) ? 0.86 : 0.64)
+                    }
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 18)
+        }
+    }
+}
+
+private struct OrderBookSkeleton: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            HeaderRow()
+            SkeletonBlock(width: 116, height: 16, cornerRadius: 4)
+                .frame(maxWidth: .infinity, minHeight: 38, alignment: .center)
+
+            ForEach(0..<8, id: \.self) { index in
+                SkeletonOrderBookRow(seed: index)
+            }
+        }
+    }
+}
+
+private struct SkeletonOrderBookRow: View {
+    let seed: Int
+
+    var body: some View {
+        HStack(spacing: orderBookPriceGap) {
+            HStack(spacing: 0) {
+                SkeletonBlock(width: sizeWidth(for: seed), height: 13, cornerRadius: 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                SkeletonBlock(width: priceWidth(for: seed), height: 13, cornerRadius: 3)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.leading, 4)
+            .padding(.trailing, 6)
+
+            HStack(spacing: 0) {
+                SkeletonBlock(width: priceWidth(for: seed + 2), height: 13, cornerRadius: 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                SkeletonBlock(width: sizeWidth(for: seed + 1), height: 13, cornerRadius: 3)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.leading, 6)
+            .padding(.trailing, 4)
+        }
+        .frame(height: 30)
+    }
+
+    private func priceWidth(for seed: Int) -> CGFloat {
+        [72, 84, 64, 78][seed % 4]
+    }
+
+    private func sizeWidth(for seed: Int) -> CGFloat {
+        [34, 46, 38, 52][seed % 4]
+    }
+}
+
+private struct SkeletonBlock: View {
+    let width: CGFloat
+    let height: CGFloat
+    let cornerRadius: CGFloat
+
+    @State private var isAnimating = false
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(AppColors.selection)
+            .overlay {
+                GeometryReader { geometry in
+                    LinearGradient(
+                        colors: [
+                            Color.clear,
+                            AppColors.textPrimary.opacity(0.08),
+                            Color.clear,
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geometry.size.width * 1.6)
+                    .offset(x: isAnimating ? geometry.size.width : -geometry.size.width * 1.6)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            }
+            .frame(width: width, height: height)
+            .onAppear {
+                withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                    isAnimating = true
+                }
+            }
     }
 }
 
