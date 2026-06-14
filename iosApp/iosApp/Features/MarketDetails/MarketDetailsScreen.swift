@@ -357,12 +357,53 @@ private struct MarketTabs: View {
     let onSelect: (MarketSymbol) -> Void
 
     var body: some View {
-        SegmentedSelector(
-            values: [.btc, .eth, .sol],
-            selected: selectedMarket,
-            label: \.displayName,
-            onSelect: onSelect
-        )
+        HStack(spacing: 10) {
+            ForEach([MarketSymbol.btc, .eth, .sol], id: \.self) { market in
+                MarketTabButton(
+                    market: market,
+                    isSelected: selectedMarket == market,
+                    onSelect: onSelect
+                )
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+}
+
+private struct MarketTabButton: View {
+    let market: MarketSymbol
+    let isSelected: Bool
+    let onSelect: (MarketSymbol) -> Void
+
+    var body: some View {
+        Button {
+            onSelect(market)
+        } label: {
+            HStack(spacing: 8) {
+                if let image = market.tokenImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 22, height: 22)
+                }
+
+                Text(market.displayName)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 38)
+            .padding(.horizontal, 10)
+            .background(isSelected ? AppColors.selection : AppColors.panel)
+            .clipShape(Capsule(style: .continuous))
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(isSelected ? AppColors.textSecondary.opacity(0.42) : AppColors.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -782,6 +823,19 @@ private func flashColor(for change: LevelChange) -> Color {
 private extension MarketChartBar {
     var candlestickData: CandlestickData {
         CandlestickData(time: time, open: open, high: high, low: low, close: close)
+    }
+}
+
+private extension MarketSymbol {
+    var tokenImage: UIImage? {
+        switch self {
+        case .btc:
+            return MR.images.shared.bitcoin_token.toUIImage()
+        case .eth:
+            return MR.images.shared.ethereum_token.toUIImage()
+        case .sol:
+            return MR.images.shared.solana_token.toUIImage()
+        }
     }
 }
 
