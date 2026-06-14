@@ -7,6 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import org.coreypett.fullstack.di.SharedDependencyGraph
+import org.coreypett.fullstack.features.marketdetails.MarketDetailsFeatures
+import org.coreypett.fullstack.features.marketdetails.MarketDetailsPreview
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,9 +17,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val orderBookFeature = SharedDependencyGraph.orderBookFeature()
+        val features = MarketDetailsFeatures(
+            orderBookFeature = SharedDependencyGraph.orderBookFeature(),
+            candleChartFeature = SharedDependencyGraph.candleChartFeature(),
+            marketSummaryFeature = SharedDependencyGraph.marketSummaryFeature(),
+            tradeFeature = SharedDependencyGraph.tradeFeature(),
+        )
         setContent {
-            App(orderBookFeature = orderBookFeature)
+            App(features = features)
         }
     }
 }
@@ -25,5 +32,5 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    App()
+    MarketDetailsPreview()
 }
