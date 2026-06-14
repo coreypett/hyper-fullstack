@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "701048166164",
+    "project_id": "hyper-fullstack",
+    "storage_bucket": "hyper-fullstack.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:701048166164:android:25394ea0c748d4f401d401",
+        "android_client_info": {
+          "package_name": "org.coreypett.fullstack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAh5fi5-RtUpzt37cOAAjlc5eyR_nzaSE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

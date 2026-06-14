@@ -1,9 +1,12 @@
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.firebaseAppDistribution)
+    alias(libs.plugins.googleServices)
 }
 
 kotlin {
@@ -43,8 +46,18 @@ android {
         }
     }
     buildTypes {
+        getByName("debug") {
+            firebaseAppDistribution {
+                artifactType = "APK"
+                releaseNotes = "Internal Android debug build."
+            }
+        }
         getByName("release") {
             isMinifyEnabled = false
+            firebaseAppDistribution {
+                artifactType = "APK"
+                releaseNotes = "Internal Android test build."
+            }
         }
     }
     compileOptions {
