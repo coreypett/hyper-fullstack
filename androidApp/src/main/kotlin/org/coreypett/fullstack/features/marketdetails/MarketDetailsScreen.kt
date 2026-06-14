@@ -109,7 +109,6 @@ fun MarketDetailsScreen(
         MarketSummarySection(
             selectedMarket = state.selectedMarket,
             summaryState = state.summaryState,
-            orderBookStatusLabel = state.orderBookState.statusLabel,
         )
         MarketChartSection(
             selectedInterval = state.selectedInterval,

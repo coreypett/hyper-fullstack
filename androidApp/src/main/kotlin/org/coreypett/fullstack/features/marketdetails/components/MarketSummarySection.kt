@@ -1,19 +1,23 @@
 package org.coreypett.fullstack.features.marketdetails.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -25,156 +29,141 @@ import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.market.summary.model.MarketSummaryChangeDirection
 import org.coreypett.fullstack.market.summary.model.MarketSummaryViewState
 import org.coreypett.fullstack.support.toComposeColor
-import org.coreypett.fullstack.support.tokenIconResource
 
 @Composable
 fun MarketSummarySection(
     selectedMarket: MarketSymbol,
     summaryState: MarketSummaryViewState,
-    orderBookStatusLabel: String,
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MR.colors.app_background.toComposeColor()),
+            .background(MR.colors.app_background.toComposeColor())
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .defaultMinSize(minHeight = 84.dp),
+            verticalArrangement = Arrangement.Center,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Image(
-                    painter = painterResource(id = selectedMarket.tokenIconResource().drawableResId),
-                    contentDescription = null,
-                    modifier = Modifier.size(34.dp),
-                )
-                Column(
-                    modifier = Modifier.weight(1f, fill = false),
-                ) {
-                    Text(
-                        text = "${selectedMarket.displayName}-USD",
-                        color = MR.colors.text_primary.toComposeColor(),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = orderBookStatusLabel,
-                        color = MR.colors.text_tertiary.toComposeColor(),
-                        fontSize = 12.sp,
-                    )
-                }
-            }
             Text(
-                text = "Hyperliquid",
-                color = MR.colors.brand_orange.toComposeColor(),
+                text = "${selectedMarket.displayName}-USDC",
+                color = MR.colors.text_tertiary.toComposeColor(),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-        }
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(3.dp))
 
-        Text(
-            text = summaryState.midPriceText ?: "--",
-            color = MR.colors.text_primary.toComposeColor(),
-            fontSize = 38.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = FontFamily.Monospace,
-            maxLines = 1,
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val changeColor = when (summaryState.changeDirection) {
-                MarketSummaryChangeDirection.Up -> MR.colors.bid.toComposeColor()
-                MarketSummaryChangeDirection.Down -> MR.colors.ask.toComposeColor()
-                MarketSummaryChangeDirection.Flat -> MR.colors.text_secondary.toComposeColor()
+            MidPriceText(
+                text = summaryState.midPriceText ?: "--",
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val changeColor = when (summaryState.changeDirection) {
+                    MarketSummaryChangeDirection.Up -> MR.colors.bid.toComposeColor()
+                    MarketSummaryChangeDirection.Down -> MR.colors.ask.toComposeColor()
+                    MarketSummaryChangeDirection.Flat -> MR.colors.text_secondary.toComposeColor()
+                }
+                Text(
+                    text = summaryState.priceChangeText ?: "--",
+                    color = changeColor,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = summaryState.priceChangePercentText ?: "--",
+                    color = changeColor,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            Text(
-                text = summaryState.priceChangeText ?: "--",
-                color = changeColor,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Monospace,
-            )
-            Text(
-                text = summaryState.priceChangePercentText ?: "--",
-                color = changeColor,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Monospace,
-            )
         }
-
-        Spacer(Modifier.height(16.dp))
 
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .width(142.dp)
+                .defaultMinSize(minHeight = 84.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.End,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SummaryMetric(
-                    label = "24h Vol",
-                    value = summaryState.volume24hText ?: "--",
-                    modifier = Modifier.weight(1f),
-                )
-                SummaryMetric(
-                    label = "24h High",
-                    value = summaryState.high24hText ?: "--",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SummaryMetric(
-                    label = "24h Low",
-                    value = summaryState.low24hText ?: "--",
-                    modifier = Modifier.weight(1f),
-                )
-                SummaryMetric(
-                    label = "Open Int",
-                    value = summaryState.openInterestText ?: "--",
-                    modifier = Modifier.weight(1f),
-                )
+            val stats = listOf(
+                "24h Vol" to summaryState.volume24hText,
+                "24h High" to summaryState.high24hText,
+                "24h Low" to summaryState.low24hText,
+                "Open Int." to summaryState.openInterestText,
+            )
+            stats.forEach { (label, value) ->
+                SummaryMetricRow(label = label, value = value ?: "--")
             }
         }
     }
 }
 
 @Composable
-private fun SummaryMetric(
+private fun MidPriceText(
+    text: String,
+) {
+    var fontSize by remember(text) { mutableStateOf(36.sp) }
+
+    Text(
+        text = text,
+        color = MR.colors.text_primary.toComposeColor(),
+        fontSize = fontSize,
+        fontWeight = FontWeight.SemiBold,
+        fontFamily = FontFamily.Monospace,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        onTextLayout = { result ->
+            if (result.hasVisualOverflow && fontSize > 24.sp) {
+                fontSize = (fontSize.value - 1f).coerceAtLeast(24f).sp
+            }
+        },
+    )
+}
+
+@Composable
+private fun SummaryMetricRow(
     label: String,
     value: String,
-    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             text = label,
             color = MR.colors.text_tertiary.toComposeColor(),
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        Spacer(Modifier.width(8.dp))
         Text(
             text = value,
             color = MR.colors.text_primary.toComposeColor(),
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.Start,
+            textAlign = TextAlign.End,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
     }
 }
