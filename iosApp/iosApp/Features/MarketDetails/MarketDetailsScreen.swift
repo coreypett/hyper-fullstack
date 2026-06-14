@@ -264,6 +264,17 @@ struct OrderBookState {
         !asks.isEmpty || !bids.isEmpty
     }
 
+    var pairedRows: [OrderBookLevelPair] {
+        let visibleAsks = Array(asks.reversed())
+        let rowCount = max(bids.count, visibleAsks.count)
+        return (0..<rowCount).map { index in
+            OrderBookLevelPair(
+                bid: bids.indices.contains(index) ? bids[index] : nil,
+                ask: visibleAsks.indices.contains(index) ? visibleAsks[index] : nil
+            )
+        }
+    }
+
     static let preview = OrderBookState(
         status: .live,
         statusLabel: "Live",
@@ -339,6 +350,11 @@ struct OrderBookRow: Hashable {
         self.depthFraction = depthFraction
         self.change = change
     }
+}
+
+struct OrderBookLevelPair {
+    let bid: OrderBookRow?
+    let ask: OrderBookRow?
 }
 
 struct MarketDetailsScreen: View {
@@ -701,14 +717,10 @@ private struct OrderBookList: View {
         LazyVStack(spacing: 0) {
             HeaderRow()
 
-            ForEach(orderBook.asks, id: \.self) { level in
-                LevelRow(level: level)
-            }
-
             SpreadRow(spreadText: orderBook.spreadText ?? "--")
 
-            ForEach(orderBook.bids, id: \.self) { level in
-                LevelRow(level: level)
+            ForEach(Array(orderBook.pairedRows.enumerated()), id: \.offset) { _, pair in
+                PairedLevelRow(pair: pair)
             }
         }
     }
@@ -716,10 +728,22 @@ private struct OrderBookList: View {
 
 private struct HeaderRow: View {
     var body: some View {
-        HStack {
-            HeaderCell(text: "Price", alignment: .leading)
-            HeaderCell(text: "Size", alignment: .trailing)
-            HeaderCell(text: "Orders", alignment: .trailing)
+        HStack(spacing: orderBookPriceGap) {
+            HStack(spacing: 0) {
+                HeaderCell(text: "Size", alignment: .leading)
+                HeaderCell(text: "Price (Bid)", alignment: .trailing)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.leading, 4)
+            .padding(.trailing, 6)
+
+            HStack(spacing: 0) {
+                HeaderCell(text: "Price (Ask)", alignment: .leading)
+                HeaderCell(text: "Size", alignment: .trailing)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.leading, 6)
+            .padding(.trailing, 4)
         }
         .padding(.vertical, 6)
     }
@@ -735,40 +759,129 @@ private struct HeaderCell: View {
             .foregroundStyle(AppColors.textTertiary)
             .frame(maxWidth: .infinity, alignment: alignment)
             .lineLimit(1)
+            .minimumScaleFactor(0.75)
     }
 }
 
-private struct LevelRow: View {
-    let level: OrderBookRow
+private struct PairedLevelRow: View {
+    let pair: OrderBookLevelPair
+
+    var body: some View {
+        ZStack {
+            DepthColumns(pair: pair)
+
+            HStack(spacing: orderBookPriceGap) {
+                BidColumns(level: pair.bid)
+                AskColumns(level: pair.ask)
+            }
+            .font(.system(size: 13, design: .monospaced))
+            .lineLimit(1)
+        }
+        .frame(height: 30)
+    }
+}
+
+private struct DepthColumns: View {
+    let pair: OrderBookLevelPair
+
+    var body: some View {
+        HStack(spacing: orderBookPriceGap) {
+            HStack(spacing: 0) {
+                Color.clear
+                    .frame(maxWidth: .infinity)
+
+                PriceDepth(level: pair.bid, side: .bid)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.leading, 4)
+            .padding(.trailing, 6)
+
+            HStack(spacing: 0) {
+                PriceDepth(level: pair.ask, side: .ask)
+
+                Color.clear
+                    .frame(maxWidth: .infinity)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.leading, 6)
+            .padding(.trailing, 4)
+        }
+    }
+}
+
+private struct PriceDepth: View {
+    let level: OrderBookRow?
+    let side: OrderBookSide
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: level.side == .bid ? .leading : .trailing) {
-                flashColor(for: level.change)
-
-                sideColor(for: level.side)
-                    .opacity(0.14)
-                    .frame(width: geometry.size.width * CGFloat(level.depthFraction))
-
-                HStack {
-                    Text(level.priceText)
-                        .foregroundStyle(sideColor(for: level.side))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Text(level.sizeText)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-
-                    Text(level.orderCountText)
-                        .foregroundStyle(AppColors.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+            ZStack(alignment: side == .bid ? .trailing : .leading) {
+                if let level {
+                    sideColor(for: side)
+                        .opacity(0.11)
+                        .frame(width: geometry.size.width * CGFloat(clamped(level.depthFraction)))
                 }
-                .font(.system(size: 13, design: .monospaced))
-                .lineLimit(1)
-                .padding(.horizontal, 4)
             }
+            .frame(
+                width: geometry.size.width,
+                height: geometry.size.height,
+                alignment: side == .bid ? .trailing : .leading
+            )
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 30)
+    }
+
+    private func clamped(_ value: Double) -> Double {
+        min(max(value, 0), 1)
+    }
+}
+
+private struct BidColumns: View {
+    let level: OrderBookRow?
+
+    var body: some View {
+        HStack(spacing: 0) {
+            LevelText(level?.sizeText, color: AppColors.textPrimary, alignment: .leading)
+            LevelText(level?.priceText, color: AppColors.bid, alignment: .trailing)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.leading, 4)
+        .padding(.trailing, 6)
+    }
+}
+
+private struct AskColumns: View {
+    let level: OrderBookRow?
+
+    var body: some View {
+        HStack(spacing: 0) {
+            LevelText(level?.priceText, color: AppColors.ask, alignment: .leading)
+            LevelText(level?.sizeText, color: AppColors.textPrimary, alignment: .trailing)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.leading, 6)
+        .padding(.trailing, 4)
+    }
+}
+
+private struct LevelText: View {
+    let text: String?
+    let color: Color
+    let alignment: Alignment
+
+    init(_ text: String?, color: Color, alignment: Alignment) {
+        self.text = text
+        self.color = color
+        self.alignment = alignment
+    }
+
+    var body: some View {
+        Text(text ?? "")
+            .foregroundStyle(color)
+            .frame(maxWidth: .infinity, alignment: alignment)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
     }
 }
 
@@ -776,17 +889,16 @@ private struct SpreadRow: View {
     let spreadText: String
 
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             Text("Spread")
                 .font(.system(size: 12))
                 .foregroundStyle(AppColors.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(spreadText)
                 .font(.system(size: 15, weight: .semibold, design: .monospaced))
                 .foregroundStyle(AppColors.accent)
-                .frame(maxWidth: .infinity, alignment: .trailing)
         }
+        .frame(maxWidth: .infinity, alignment: .center)
         .frame(height: 38)
         .padding(.horizontal, 4)
         .background(AppColors.panel)
@@ -841,18 +953,10 @@ private let chartIntervals: [CandleInterval] = [
     .oneDay,
 ]
 
+private let orderBookPriceGap: CGFloat = 8
+
 private func sideColor(for side: OrderBookSide) -> Color {
     side == .bid ? AppColors.bid : AppColors.ask
-}
-
-private func flashColor(for change: LevelChange) -> Color {
-    if change == .up {
-        return AppColors.upFlash
-    }
-    if change == .down {
-        return AppColors.downFlash
-    }
-    return .clear
 }
 
 private extension MarketChartBar {
@@ -956,8 +1060,6 @@ private enum AppColors {
     static let accent = MR.colors.shared.brand_orange.asSwiftUIColor()
     static let bid = MR.colors.shared.bid.asSwiftUIColor()
     static let ask = MR.colors.shared.ask.asSwiftUIColor()
-    static let upFlash = MR.colors.shared.up_flash.asSwiftUIColor()
-    static let downFlash = MR.colors.shared.down_flash.asSwiftUIColor()
 }
 
 private extension Color {
