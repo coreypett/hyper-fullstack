@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -44,6 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.orderbook.model.OrderBookLevel
@@ -348,6 +350,7 @@ private fun stateLabel(uiState: OrderBookUiState): String = when (uiState) {
     is OrderBookUiState.Stale -> "Reconnecting"
 }
 
+@Composable
 private fun stateColor(uiState: OrderBookUiState): Color = when (uiState) {
     OrderBookUiState.Connecting -> AppColors.TextSecondary
     is OrderBookUiState.Failed -> AppColors.Ask
@@ -356,16 +359,33 @@ private fun stateColor(uiState: OrderBookUiState): Color = when (uiState) {
 }
 
 private object AppColors {
-    val Background = Color(0xFF06080B)
-    val Panel = Color(0xFF10161C)
-    val Selection = Color(0xFF1B2834)
-    val Border = Color(0xFF1E2A35)
-    val TextPrimary = Color(0xFFE8EDF2)
-    val TextSecondary = Color(0xFF9AA8B4)
-    val TextTertiary = Color(0xFF63717D)
-    val Accent = Color(0xFFE9B44C)
-    val Bid = Color(0xFF28C084)
-    val Ask = Color(0xFFE85D75)
-    val UpFlash = Color(0x3328C084)
-    val DownFlash = Color(0x33E85D75)
+    val Background: Color
+        @Composable get() = MR.colors.app_background.toComposeColor()
+    val Panel: Color
+        @Composable get() = MR.colors.app_panel.toComposeColor()
+    val Selection: Color
+        @Composable get() = MR.colors.app_selection.toComposeColor()
+    val Border: Color
+        @Composable get() = MR.colors.app_border.toComposeColor()
+    val TextPrimary: Color
+        @Composable get() = MR.colors.text_primary.toComposeColor()
+    val TextSecondary: Color
+        @Composable get() = MR.colors.text_secondary.toComposeColor()
+    val TextTertiary: Color
+        @Composable get() = MR.colors.text_tertiary.toComposeColor()
+    val Accent: Color
+        @Composable get() = MR.colors.brand_orange.toComposeColor()
+    val Bid: Color
+        @Composable get() = MR.colors.bid.toComposeColor()
+    val Ask: Color
+        @Composable get() = MR.colors.ask.toComposeColor()
+    val UpFlash: Color
+        @Composable get() = MR.colors.up_flash.toComposeColor()
+    val DownFlash: Color
+        @Composable get() = MR.colors.down_flash.toComposeColor()
+}
+
+@Composable
+private fun dev.icerock.moko.resources.ColorResource.toComposeColor(): Color {
+    return Color(getColor(LocalContext.current))
 }

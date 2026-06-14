@@ -51,7 +51,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.websockets)
-            implementation(libs.moko.resources)
+            api(libs.moko.resources)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
