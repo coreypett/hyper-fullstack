@@ -6,8 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,6 +53,7 @@ import org.coreypett.fullstack.features.marketdetails.MarketDetailsChartInterval
 import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.market.candle.model.CandleBar
 import org.coreypett.fullstack.market.candle.model.CandleInterval
+import org.coreypett.fullstack.market.candle.presentation.CandleChartStatus
 import org.coreypett.fullstack.market.candle.presentation.CandleChartState
 import org.coreypett.fullstack.support.toComposeColor
 
@@ -83,15 +87,62 @@ fun MarketChartSection(
                     .alpha(0.18f),
             )
             if (candleState.bars.isEmpty()) {
-                FillEmptyState(
-                    message = candleState.message ?: "Loading chart",
-                    modifier = Modifier.fillMaxSize(),
-                )
+                if (candleState.status == CandleChartStatus.Failed) {
+                    FillEmptyState(
+                        message = candleState.message ?: "Loading chart",
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    ChartSkeleton(modifier = Modifier.fillMaxSize())
+                }
             } else {
                 LightweightCandleChart(
                     bars = candleState.bars,
                     modifier = Modifier.fillMaxSize(),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChartSkeleton(
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier) {
+        val spacing = 8.dp
+        val chartHeight = maxHeight
+        val barWidth = ((maxWidth - 32.dp - (spacing * (ChartSkeletonFractions.size - 1))) / ChartSkeletonFractions.size)
+            .coerceAtLeast(8.dp)
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(spacing),
+        ) {
+            ChartSkeletonFractions.forEachIndexed { index, fraction ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    SkeletonBlock(
+                        width = 2.dp,
+                        height = chartHeight * 0.22f,
+                        cornerRadius = 1.dp,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    SkeletonBlock(
+                        width = barWidth,
+                        height = (chartHeight * fraction * 0.42f).coerceAtLeast(28.dp),
+                        cornerRadius = 3.dp,
+                        modifier = Modifier.alpha(if (index % 2 == 0) 0.86f else 0.64f),
+                    )
+                }
             }
         }
     }
@@ -311,6 +362,8 @@ private val CandleInterval.chartLabel: String
     get() = if (this == CandleInterval.OneDay) "1D" else displayName
 
 private const val VolumePriceScaleId = "volume"
+
+private val ChartSkeletonFractions = listOf(0.42f, 0.66f, 0.54f, 0.76f, 0.48f, 0.58f, 0.82f, 0.62f, 0.44f, 0.70f, 0.52f, 0.64f)
 
 private val DollarPriceFormatterJavaScript = """
 function(price) {

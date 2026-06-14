@@ -16,12 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.market.trade.model.RecentTradesSide
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesRowDisplay
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesStatus
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
 import org.coreypett.fullstack.support.toComposeColor
 import java.text.SimpleDateFormat
@@ -34,7 +36,11 @@ fun RecentTradesSection(
     viewState: RecentTradesViewState,
 ) {
     if (!viewState.hasTrades) {
-        EmptyState(message = viewState.centerMessage ?: "Loading trades")
+        if (viewState.status == RecentTradesStatus.Failed) {
+            EmptyState(message = viewState.centerMessage ?: "Loading trades")
+        } else {
+            RecentTradesSkeleton(market = market)
+        }
         return
     }
 
@@ -46,6 +52,77 @@ fun RecentTradesSection(
         viewState.recentTrades.take(18).forEach { recentTrade ->
             RecentTradesRow(recentTrade = recentTrade)
         }
+    }
+}
+
+@Composable
+private fun RecentTradesSkeleton(
+    market: MarketSymbol,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        RecentTradesHeader(market = market)
+        repeat(7) { seed ->
+            SkeletonRecentTradeRow(seed = seed)
+        }
+    }
+}
+
+@Composable
+private fun SkeletonRecentTradeRow(
+    seed: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(30.dp)
+            .background(MR.colors.app_background.toComposeColor())
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        SkeletonCell(
+            width = recentTradePriceSkeletonWidth(seed),
+            alignment = Alignment.CenterStart,
+        )
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier.width(RecentTradesSizeColumnWidth),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                SkeletonBlock(
+                    width = recentTradeSizeSkeletonWidth(seed),
+                    height = 13.dp,
+                    cornerRadius = 3.dp,
+                )
+            }
+        }
+        SkeletonCell(
+            width = 58.dp,
+            alignment = Alignment.CenterEnd,
+        )
+    }
+}
+
+@Composable
+private fun RowScope.SkeletonCell(
+    width: Dp,
+    alignment: Alignment,
+) {
+    Box(
+        modifier = Modifier.weight(1f),
+        contentAlignment = alignment,
+    ) {
+        SkeletonBlock(
+            width = width,
+            height = 13.dp,
+            cornerRadius = 3.dp,
+        )
     }
 }
 
@@ -157,3 +234,12 @@ private fun Long.toTradeTime(): String {
 }
 
 private val RecentTradesSizeColumnWidth = 64.dp
+
+private val RecentTradesPriceSkeletonWidths = listOf(72.dp, 84.dp, 64.dp, 78.dp)
+private val RecentTradesSizeSkeletonWidths = listOf(34.dp, 46.dp, 38.dp, 52.dp)
+
+private fun recentTradePriceSkeletonWidth(seed: Int): Dp =
+    RecentTradesPriceSkeletonWidths[seed % RecentTradesPriceSkeletonWidths.size]
+
+private fun recentTradeSizeSkeletonWidth(seed: Int): Dp =
+    RecentTradesSizeSkeletonWidths[seed % RecentTradesSizeSkeletonWidths.size]

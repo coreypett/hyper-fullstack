@@ -21,11 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
 import org.coreypett.fullstack.orderbook.presentation.OrderBookRowDisplay
+import org.coreypett.fullstack.orderbook.presentation.OrderBookStatus
 import org.coreypett.fullstack.orderbook.presentation.OrderBookViewState
 import org.coreypett.fullstack.support.toComposeColor
 
@@ -34,7 +36,11 @@ fun OrderBookSection(
     viewState: OrderBookViewState,
 ) {
     if (!viewState.hasRows) {
-        EmptyState(message = viewState.centerMessage ?: "Loading order book")
+        if (viewState.status == OrderBookStatus.Failed) {
+            EmptyState(message = viewState.centerMessage ?: "Loading order book")
+        } else {
+            OrderBookSkeleton()
+        }
         return
     }
 
@@ -54,6 +60,95 @@ fun OrderBookSection(
                 ask = asks.getOrNull(index),
             )
         }
+    }
+}
+
+@Composable
+private fun OrderBookSkeleton() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        OrderBookHeader()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(38.dp)
+                .background(MR.colors.app_panel.toComposeColor())
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            SkeletonBlock(
+                width = 116.dp,
+                height = 16.dp,
+                cornerRadius = 4.dp,
+            )
+        }
+        repeat(8) { seed ->
+            SkeletonOrderBookRow(seed = seed)
+        }
+    }
+}
+
+@Composable
+private fun SkeletonOrderBookRow(
+    seed: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(30.dp)
+            .background(MR.colors.app_background.toComposeColor()),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OrderBookPriceGap),
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 4.dp, end = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SkeletonCell(
+                width = skeletonSizeWidth(seed),
+                alignment = Alignment.CenterStart,
+            )
+            SkeletonCell(
+                width = skeletonPriceWidth(seed),
+                alignment = Alignment.CenterEnd,
+            )
+        }
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 6.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SkeletonCell(
+                width = skeletonPriceWidth(seed + 2),
+                alignment = Alignment.CenterStart,
+            )
+            SkeletonCell(
+                width = skeletonSizeWidth(seed + 1),
+                alignment = Alignment.CenterEnd,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.SkeletonCell(
+    width: Dp,
+    alignment: Alignment,
+) {
+    Box(
+        modifier = Modifier.weight(1f),
+        contentAlignment = alignment,
+    ) {
+        SkeletonBlock(
+            width = width,
+            height = 13.dp,
+            cornerRadius = 3.dp,
+        )
     }
 }
 
@@ -283,3 +378,10 @@ private fun SpreadRow(
 }
 
 private val OrderBookPriceGap = 8.dp
+
+private val SkeletonPriceWidths = listOf(72.dp, 84.dp, 64.dp, 78.dp)
+private val SkeletonSizeWidths = listOf(34.dp, 46.dp, 38.dp, 52.dp)
+
+private fun skeletonPriceWidth(seed: Int): Dp = SkeletonPriceWidths[seed % SkeletonPriceWidths.size]
+
+private fun skeletonSizeWidth(seed: Int): Dp = SkeletonSizeWidths[seed % SkeletonSizeWidths.size]

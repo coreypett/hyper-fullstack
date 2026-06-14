@@ -2,6 +2,7 @@ package org.coreypett.fullstack.features.marketdetails.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +36,8 @@ fun MarketSummarySection(
     selectedMarket: MarketSymbol,
     summaryState: MarketSummaryViewState,
 ) {
+    val midPriceText = summaryState.midPriceText
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -60,37 +63,24 @@ fun MarketSummarySection(
 
             Spacer(Modifier.height(3.dp))
 
-            MidPriceText(
-                text = summaryState.midPriceText ?: "--",
-            )
+            if (midPriceText == null) {
+                SkeletonBlock(
+                    width = 210.dp,
+                    height = 42.dp,
+                    cornerRadius = 6.dp,
+                )
+            } else {
+                MidPriceText(text = midPriceText)
+            }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                val changeColor = when (summaryState.changeDirection) {
-                    MarketSummaryChangeDirection.Up -> MR.colors.bid.toComposeColor()
-                    MarketSummaryChangeDirection.Down -> MR.colors.ask.toComposeColor()
-                    MarketSummaryChangeDirection.Flat -> MR.colors.text_secondary.toComposeColor()
-                }
-                Text(
-                    text = summaryState.priceChangeText ?: "--",
-                    color = changeColor,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            if (summaryState.priceChangeText == null || summaryState.priceChangePercentText == null) {
+                SkeletonBlock(
+                    width = 132.dp,
+                    height = 18.dp,
+                    cornerRadius = 4.dp,
                 )
-                Text(
-                    text = summaryState.priceChangePercentText ?: "--",
-                    color = changeColor,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            } else {
+                PriceChangeRow(summaryState = summaryState)
             }
         }
 
@@ -108,9 +98,43 @@ fun MarketSummarySection(
                 "Open Int." to summaryState.openInterestText,
             )
             stats.forEach { (label, value) ->
-                SummaryMetricRow(label = label, value = value ?: "--")
+                SummaryMetricRow(label = label, value = value)
             }
         }
+    }
+}
+
+@Composable
+private fun PriceChangeRow(
+    summaryState: MarketSummaryViewState,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val changeColor = when (summaryState.changeDirection) {
+            MarketSummaryChangeDirection.Up -> MR.colors.bid.toComposeColor()
+            MarketSummaryChangeDirection.Down -> MR.colors.ask.toComposeColor()
+            MarketSummaryChangeDirection.Flat -> MR.colors.text_secondary.toComposeColor()
+        }
+        Text(
+            text = summaryState.priceChangeText.orEmpty(),
+            color = changeColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = summaryState.priceChangePercentText.orEmpty(),
+            color = changeColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -140,7 +164,7 @@ private fun MidPriceText(
 @Composable
 private fun SummaryMetricRow(
     label: String,
-    value: String,
+    value: String?,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -154,16 +178,29 @@ private fun SummaryMetricRow(
             overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.width(8.dp))
-        Text(
-            text = value,
-            color = MR.colors.text_primary.toComposeColor(),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.End,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        if (value == null) {
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                SkeletonBlock(
+                    width = 58.dp,
+                    height = 13.dp,
+                    cornerRadius = 3.dp,
+                )
+            }
+        } else {
+            Text(
+                text = value,
+                color = MR.colors.text_primary.toComposeColor(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
