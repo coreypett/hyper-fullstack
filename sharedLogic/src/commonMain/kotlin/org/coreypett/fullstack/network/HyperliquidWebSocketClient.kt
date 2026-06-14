@@ -69,10 +69,17 @@ internal interface HyperliquidWebSocketClient {
             subscription: Subscription,
             serializer: KSerializer<Subscription>,
         ): Flow<HyperliquidWebSocketEvent> = callbackFlow {
-            val requestText = encodeSubscribeRequest(
-                subscription = subscription,
-                serializer = serializer,
-                json = json,
+            val requestTexts = HyperliquidWebSocketRequestTexts(
+                subscribeText = encodeSubscribeRequest(
+                    subscription = subscription,
+                    serializer = serializer,
+                    json = json,
+                ),
+                unsubscribeText = encodeUnsubscribeRequest(
+                    subscription = subscription,
+                    serializer = serializer,
+                    json = json,
+                ),
             )
             val collector = launch {
                 events.collect { event ->
@@ -81,7 +88,7 @@ internal interface HyperliquidWebSocketClient {
             }
 
             try {
-                register(requestText)
+                register(requestTexts.subscribeText)
             } catch (error: Throwable) {
                 collector.cancel()
                 close(error)
@@ -89,25 +96,32 @@ internal interface HyperliquidWebSocketClient {
 
             awaitClose {
                 collector.cancel()
-                scope.launch { unregister(requestText) }
+                scope.launch { unregister(requestTexts) }
             }
         }
 
         private suspend fun register(requestText: String) {
-            val session = mutex.withLock {
+            mutex.lock()
+            try {
                 val activeCount = subscriptionCounts[requestText] ?: 0
                 subscriptionCounts[requestText] = activeCount + 1
                 ensureConnectionLocked()
 
-                if (activeCount == 0) activeSession else null
+                if (activeCount == 0) {
+                    activeSession?.sendWebSocketRequest(requestText)
+                }
+            } finally {
+                mutex.unlock()
             }
-
-            session?.sendSubscribeRequest(requestText)
         }
 
-        private suspend fun unregister(requestText: String) {
-            val jobToCancel = mutex.withLock {
-                val activeCount = subscriptionCounts[requestText] ?: return@withLock null
+        private suspend fun unregister(requestTexts: HyperliquidWebSocketRequestTexts) {
+            var jobToCancel: Job? = null
+
+            mutex.lock()
+            try {
+                val requestText = requestTexts.subscribeText
+                val activeCount = subscriptionCounts[requestText] ?: return
                 if (activeCount <= 1) {
                     subscriptionCounts.remove(requestText)
                 } else {
@@ -116,10 +130,15 @@ internal interface HyperliquidWebSocketClient {
 
                 if (subscriptionCounts.isEmpty()) {
                     activeSession = null
-                    connectionJob.also { connectionJob = null }
+                    jobToCancel = connectionJob
+                    connectionJob = null
                 } else {
-                    null
+                    if (activeCount <= 1) {
+                        activeSession?.sendWebSocketRequest(requestTexts.unsubscribeText)
+                    }
                 }
+            } finally {
+                mutex.unlock()
             }
 
             jobToCancel?.cancel()
@@ -140,12 +159,14 @@ internal interface HyperliquidWebSocketClient {
                         attempt = 0L
                         openedSession = this
 
-                        val activeRequests = mutex.withLock {
+                        mutex.lock()
+                        try {
                             activeSession = this@webSocket
-                            subscriptionCounts.keys.toList()
-                        }
-                        activeRequests.forEach { requestText ->
-                            send(Frame.Text(requestText))
+                            subscriptionCounts.keys.forEach { requestText ->
+                                send(Frame.Text(requestText))
+                            }
+                        } finally {
+                            mutex.unlock()
                         }
 
                         for (frame in incoming) {
@@ -190,7 +211,7 @@ internal interface HyperliquidWebSocketClient {
             }
         }
 
-        private suspend fun DefaultClientWebSocketSession.sendSubscribeRequest(requestText: String) {
+        private suspend fun DefaultClientWebSocketSession.sendWebSocketRequest(requestText: String) {
             try {
                 send(Frame.Text(requestText))
             } catch (error: Throwable) {
@@ -199,6 +220,11 @@ internal interface HyperliquidWebSocketClient {
         }
     }
 }
+
+private data class HyperliquidWebSocketRequestTexts(
+    val subscribeText: String,
+    val unsubscribeText: String,
+)
 
 internal sealed interface HyperliquidWebSocketEvent {
     data class Text(val text: String) : HyperliquidWebSocketEvent
@@ -239,9 +265,32 @@ internal fun <Subscription : Any> encodeSubscribeRequest(
     subscription: Subscription,
     serializer: KSerializer<Subscription>,
     json: Json = HyperliquidJson,
+): String = encodeRequest(
+    method = SubscribeMethod,
+    subscription = subscription,
+    serializer = serializer,
+    json = json,
+)
+
+internal fun <Subscription : Any> encodeUnsubscribeRequest(
+    subscription: Subscription,
+    serializer: KSerializer<Subscription>,
+    json: Json = HyperliquidJson,
+): String = encodeRequest(
+    method = UnsubscribeMethod,
+    subscription = subscription,
+    serializer = serializer,
+    json = json,
+)
+
+private fun <Subscription : Any> encodeRequest(
+    method: String,
+    subscription: Subscription,
+    serializer: KSerializer<Subscription>,
+    json: Json,
 ): String {
     val request = HyperliquidWebSocketRequestDto(
-        method = SubscribeMethod,
+        method = method,
         subscription = json.encodeToJsonElement(serializer, subscription),
     )
     return json.encodeToString(HyperliquidWebSocketRequestDto.serializer(), request)
@@ -254,5 +303,6 @@ private data class HyperliquidWebSocketRequestDto(
 )
 
 private const val SubscribeMethod = "subscribe"
+private const val UnsubscribeMethod = "unsubscribe"
 private const val HyperliquidWebSocketUrl = "wss://api.hyperliquid.xyz/ws"
 private const val EventBufferCapacity = 128

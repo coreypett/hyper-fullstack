@@ -114,5 +114,5 @@ private struct GroupingMenu: View {
 }
 
 private func groupingLabel(for precision: PricePrecision) -> String {
-    "\(precision.nSigFigs) significant figures"
+    "\(precision.nSigFigs)"
 }

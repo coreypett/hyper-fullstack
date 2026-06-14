@@ -29,6 +29,24 @@ class HyperliquidWebSocketClientTest {
     }
 
     @Test
+    fun encodesL2BookUnsubscribeRequest() {
+        val json = encodeUnsubscribeRequest(
+            subscription = L2BookSubscriptionDto(
+                type = "l2Book",
+                coin = "BTC",
+                nSigFigs = 5,
+            ),
+            serializer = L2BookSubscriptionDto.serializer(),
+        ).asJsonObject()
+        val subscription = json.getValue("subscription").jsonObject
+
+        assertEquals("unsubscribe", json.getValue("method").jsonPrimitive.content)
+        assertEquals("l2Book", subscription.getValue("type").jsonPrimitive.content)
+        assertEquals("BTC", subscription.getValue("coin").jsonPrimitive.content)
+        assertEquals("5", subscription.getValue("nSigFigs").jsonPrimitive.content)
+    }
+
+    @Test
     fun encodesCandleSubscribeRequest() {
         val json = encodeSubscribeRequest(
             subscription = CandleSubscriptionDto(

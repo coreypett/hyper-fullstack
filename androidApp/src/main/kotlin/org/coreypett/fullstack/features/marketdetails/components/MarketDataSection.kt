@@ -191,7 +191,7 @@ private fun PrecisionSelector(
 }
 
 private fun groupingLabel(precision: PricePrecision): String =
-    "${precision.nSigFigs} significant figures"
+    precision.nSigFigs.toString()
 
 @Composable
 private fun ChevronDown() {
