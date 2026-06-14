@@ -882,7 +882,7 @@ private struct MarketDataSection: View {
                 case .orderBook:
                     OrderBookSection(orderBook: orderBook)
                 case .trades:
-                    TradesSection(trades: trades)
+                    TradesSection(market: selection.market, trades: trades)
                 }
             }
             .animation(.easeInOut(duration: 0.18), value: selectedPanel)
@@ -942,15 +942,16 @@ private struct OrderBookSection: View {
 }
 
 private struct TradesSection: View {
+    let market: MarketSymbol
     let trades: TradeState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if trades.isLoading {
-                TradesSkeleton()
+                TradesSkeleton(market: market)
                     .transition(.movingParts.blur.combined(with: .opacity))
             } else if trades.hasRows {
-                TradesList(rows: trades.rows)
+                TradesList(market: market, rows: trades.rows)
                     .transition(.movingParts.blur.combined(with: .opacity))
             } else {
                 CenterMessage(text: trades.centerMessage ?? "Connecting")
@@ -963,11 +964,12 @@ private struct TradesSection: View {
 }
 
 private struct TradesList: View {
+    let market: MarketSymbol
     let rows: [TradeRow]
 
     var body: some View {
         LazyVStack(spacing: 0) {
-            TradeHeaderRow()
+            TradeHeaderRow(market: market)
 
             ForEach(Array(rows.prefix(18).enumerated()), id: \.element) { _, row in
                 TradeListRow(row: row)
@@ -977,11 +979,13 @@ private struct TradesList: View {
 }
 
 private struct TradeHeaderRow: View {
+    let market: MarketSymbol
+
     var body: some View {
         HStack(spacing: 10) {
-            TradeHeaderCell(text: "Price (USD)", alignment: .leading)
-            TradeHeaderCell(text: "Size", alignment: .trailing)
-            TradeHeaderCell(text: "Time", alignment: .trailing, width: 72)
+            TradeHeaderCell(text: "Price(USD)", alignment: .leading)
+            TradeHeaderCell(text: "Quantity(\(market.displayName))", alignment: .center)
+            TradeHeaderCell(text: "Time", alignment: .trailing)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 6)
@@ -1015,11 +1019,11 @@ private struct TradeListRow: View {
 
             Text(row.sizeText)
                 .foregroundStyle(AppColors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             Text(row.timeText)
                 .foregroundStyle(AppColors.textSecondary)
-                .frame(width: 72, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .font(.system(size: 13, design: .monospaced))
         .lineLimit(1)
@@ -1361,9 +1365,11 @@ private struct SkeletonOrderBookRow: View {
 }
 
 private struct TradesSkeleton: View {
+    let market: MarketSymbol
+
     var body: some View {
         VStack(spacing: 0) {
-            TradeHeaderRow()
+            TradeHeaderRow(market: market)
 
             ForEach(0..<7, id: \.self) { index in
                 SkeletonTradeRow(seed: index)
@@ -1381,10 +1387,10 @@ private struct SkeletonTradeRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             SkeletonBlock(width: sizeWidth(for: seed), height: 13, cornerRadius: 3)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             SkeletonBlock(width: 58, height: 13, cornerRadius: 3)
-                .frame(width: 72, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .frame(height: 30)
         .padding(.horizontal, 4)
