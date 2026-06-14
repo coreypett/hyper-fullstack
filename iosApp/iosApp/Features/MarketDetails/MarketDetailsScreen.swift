@@ -332,6 +332,7 @@ struct MarketDetailsScreen: View {
                     .padding(.horizontal, 16)
 
                 MarketChartSection(
+                    market: viewModel.selection.market,
                     selectedInterval: viewModel.chartInterval,
                     bars: viewModel.chartBars,
                     onSelectInterval: viewModel.selectChartInterval
@@ -419,6 +420,7 @@ private struct MarketStatRow: View {
 }
 
 private struct MarketChartSection: View {
+    let market: MarketSymbol
     let selectedInterval: CandleInterval
     let bars: [MarketChartBar]
     let onSelectInterval: (CandleInterval) -> Void
@@ -431,9 +433,30 @@ private struct MarketChartSection: View {
             )
             .padding(.horizontal, 16)
 
-            MarketCandlestickChart(bars: bars)
+            ZStack {
+                ChartWatermark(market: market)
+
+                MarketCandlestickChart(bars: bars)
+            }
                 .frame(height: 260)
         }
+    }
+}
+
+private struct ChartWatermark: View {
+    let market: MarketSymbol
+
+    var body: some View {
+        VStack {
+            if let image = MR.images.shared.fullstack_logo.toUIImage() {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .opacity(0.18)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .allowsHitTesting(false)
     }
 }
 
@@ -478,7 +501,9 @@ private struct MarketCandlestickChart: UIViewRepresentable {
 
     func makeUIView(context: Context) -> LightweightCharts {
         let chart = LightweightCharts(options: chartOptions)
-        chart.backgroundColor = UIColor(AppColors.background)
+        chart.isOpaque = false
+        chart.backgroundColor = .clear
+        chart.clearWebViewBackground()
 
         let series = chart.addCandlestickSeries(options: seriesOptions)
         context.coordinator.series = series
@@ -489,6 +514,9 @@ private struct MarketCandlestickChart: UIViewRepresentable {
     }
 
     func updateUIView(_ chart: LightweightCharts, context: Context) {
+        chart.isOpaque = false
+        chart.backgroundColor = .clear
+        chart.clearWebViewBackground()
         context.coordinator.series?.setData(data: bars.map(\.candlestickData))
         chart.timeScale().scrollToRealTime()
     }
@@ -758,8 +786,9 @@ private func marketChartOptions() -> ChartOptions {
     ChartOptions(
         autoSize: true,
         layout: LayoutOptions(
-            background: .solid(color: AppColors.background.chartColor),
-            textColor: AppColors.textSecondary.chartColor
+            background: .solid(color: Color.clear.chartColor),
+            textColor: AppColors.textSecondary.chartColor,
+            attributionLogo: false
         ),
         rightPriceScale: VisiblePriceScaleOptions(borderVisible: false),
         timeScale: TimeScaleOptions(borderVisible: false),
