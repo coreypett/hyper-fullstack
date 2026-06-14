@@ -6,6 +6,9 @@ import org.coreypett.fullstack.market.candle.repository.CandleRepository
 import org.coreypett.fullstack.market.candle.service.CandleService
 import org.coreypett.fullstack.market.price.repository.LivePriceRepository
 import org.coreypett.fullstack.market.price.service.LivePriceService
+import org.coreypett.fullstack.market.summary.presentation.MarketSummaryFeature
+import org.coreypett.fullstack.market.summary.repository.MarketSummaryRepository
+import org.coreypett.fullstack.market.summary.service.MarketSummaryService
 import org.coreypett.fullstack.network.HyperliquidInfoClient
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
@@ -33,9 +36,13 @@ object SharedDependencyGraph {
 
     fun livePriceRepository(): LivePriceRepository = ensureKoin().get()
 
+    fun marketSummaryRepository(): MarketSummaryRepository = ensureKoin().get()
+
     fun candleChartFeature(): CandleChartFeature = ensureKoin().get()
 
     fun orderBookFeature(): OrderBookFeature = ensureKoin().get()
+
+    fun marketSummaryFeature(): MarketSummaryFeature = ensureKoin().get()
 
     private fun ensureKoin(): Koin {
         val context = KoinPlatformTools.defaultContext()
@@ -75,17 +82,26 @@ private val serviceModule = module {
             json = get(),
         )
     }
+    single<MarketSummaryService> {
+        MarketSummaryService.Impl(
+            infoClient = get(),
+            candleService = get(),
+            json = get(),
+        )
+    }
 }
 
 private val repositoryModule = module {
     single<OrderBookRepository> { OrderBookRepository.Impl(service = get()) }
     single<CandleRepository> { CandleRepository.Impl(service = get()) }
     single<LivePriceRepository> { LivePriceRepository.Impl(service = get()) }
+    single<MarketSummaryRepository> { MarketSummaryRepository.Impl(service = get()) }
 }
 
 private val presentationModule = module {
     factory { CandleChartFeature(repository = get()) }
     factory { OrderBookFeature(repository = get()) }
+    factory { MarketSummaryFeature(repository = get()) }
 }
 
 internal val sharedLogicModules = listOf(

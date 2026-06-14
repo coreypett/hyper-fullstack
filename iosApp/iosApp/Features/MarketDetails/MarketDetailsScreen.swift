@@ -13,29 +13,44 @@ final class MarketDetailsViewModel: ObservableObject {
 
     private let orderBookFeature: OrderBookFeature?
     private let candleChartFeature: CandleChartFeature?
+    private let marketSummaryFeature: MarketSummaryFeature?
+    private var latestOrderBookViewState: OrderBookViewState?
+    private var latestMarketSummaryViewState: MarketSummaryViewState?
 
     init(
         orderBookFeature: OrderBookFeature? = SharedDependencyGraph.shared.orderBookFeature(),
-        candleChartFeature: CandleChartFeature? = SharedDependencyGraph.shared.candleChartFeature()
+        candleChartFeature: CandleChartFeature? = SharedDependencyGraph.shared.candleChartFeature(),
+        marketSummaryFeature: MarketSummaryFeature? = SharedDependencyGraph.shared.marketSummaryFeature()
     ) {
         let initialSelection = orderBookFeature?.selection ?? OrderBookSelection(market: .btc, precision: .five)
         let initialCandleSelection = candleChartFeature?.selection ?? CandleSelection(market: initialSelection.market, interval: .oneHour)
         let initialOrderBook = orderBookFeature?.currentState
         let initialCandles = candleChartFeature?.currentState.bars ?? []
+        let initialMarketSummary = marketSummaryFeature?.currentState
         self.orderBookFeature = orderBookFeature
         self.candleChartFeature = candleChartFeature
+        self.marketSummaryFeature = marketSummaryFeature
+        self.latestOrderBookViewState = initialOrderBook
+        self.latestMarketSummaryViewState = initialMarketSummary
         self.selection = initialSelection
         self.chartInterval = initialCandleSelection.interval
-        self.summary = initialOrderBook.map(MarketSummaryState.init) ?? .preview
+        self.summary = marketSummaryFeature == nil && orderBookFeature == nil
+            ? .preview
+            : MarketSummaryState(marketSummary: initialMarketSummary, orderBook: initialOrderBook)
         self.chartBars = candleChartFeature == nil ? MarketChartBar.preview : initialCandles.map(MarketChartBar.init)
         self.orderBook = initialOrderBook.map(OrderBookState.init) ?? .preview
+        marketSummaryFeature?.selectMarket(market: initialSelection.market)
 
         orderBookFeature?.observe { [weak self] state in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 let selection = self.orderBookFeature?.selection ?? self.selection
                 self.selection = selection
-                self.summary = MarketSummaryState(orderBook: state)
+                self.latestOrderBookViewState = state
+                self.summary = MarketSummaryState(
+                    marketSummary: self.latestMarketSummaryViewState,
+                    orderBook: state
+                )
                 self.orderBook = OrderBookState(shared: state)
             }
         }
@@ -48,6 +63,17 @@ final class MarketDetailsViewModel: ObservableObject {
                 }
             }
         }
+
+        marketSummaryFeature?.observe { [weak self] state in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.latestMarketSummaryViewState = state
+                self.summary = MarketSummaryState(
+                    marketSummary: state,
+                    orderBook: self.latestOrderBookViewState
+                )
+            }
+        }
     }
 
     deinit {
@@ -55,11 +81,14 @@ final class MarketDetailsViewModel: ObservableObject {
         orderBookFeature?.close()
         candleChartFeature?.clearObserver()
         candleChartFeature?.close()
+        marketSummaryFeature?.clearObserver()
+        marketSummaryFeature?.close()
     }
 
     func selectMarket(_ market: MarketSymbol) {
         orderBookFeature?.selectMarket(market: market)
         candleChartFeature?.selectMarket(market: market)
+        marketSummaryFeature?.selectMarket(market: market)
         selection = selection.doCopy(market: market, precision: selection.precision)
     }
 
@@ -74,7 +103,7 @@ final class MarketDetailsViewModel: ObservableObject {
     }
 
     static var preview: MarketDetailsViewModel {
-        MarketDetailsViewModel(orderBookFeature: nil, candleChartFeature: nil)
+        MarketDetailsViewModel(orderBookFeature: nil, candleChartFeature: nil, marketSummaryFeature: nil)
     }
 }
 
@@ -97,15 +126,15 @@ struct MarketSummaryState {
         ]
     )
 
-    init(orderBook: OrderBookViewState) {
-        self.midPriceText = orderBook.midPriceText ?? "--"
-        self.priceChangeText = "--"
-        self.priceChangePercentText = "--"
-        self.changeDirection = .flat
+    init(marketSummary: MarketSummaryViewState?, orderBook: OrderBookViewState?) {
+        self.midPriceText = marketSummary?.midPriceText ?? orderBook?.midPriceText ?? "--"
+        self.priceChangeText = marketSummary?.priceChangeText ?? "--"
+        self.priceChangePercentText = marketSummary?.priceChangePercentText ?? "--"
+        self.changeDirection = MarketSummaryState.changeDirection(from: marketSummary?.changeDirection)
         self.stats = [
-            MarketStat(label: "24h Vol", value: "--"),
-            MarketStat(label: "24h High", value: "--"),
-            MarketStat(label: "24h Low", value: "--"),
+            MarketStat(label: "24h Vol", value: marketSummary?.volume24hText ?? "--"),
+            MarketStat(label: "24h High", value: marketSummary?.high24hText ?? "--"),
+            MarketStat(label: "24h Low", value: marketSummary?.low24hText ?? "--"),
         ]
     }
 
@@ -121,6 +150,17 @@ struct MarketSummaryState {
         self.priceChangePercentText = priceChangePercentText
         self.changeDirection = changeDirection
         self.stats = stats
+    }
+
+    private static func changeDirection(from shared: MarketSummaryChangeDirection?) -> MarketChangeDirection {
+        switch shared {
+        case .up:
+            return .up
+        case .down:
+            return .down
+        case .flat, .none:
+            return .flat
+        }
     }
 }
 
