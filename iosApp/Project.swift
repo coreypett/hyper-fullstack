@@ -9,8 +9,7 @@ let deploymentTarget = "26.0"
 let marketingVersion = "1.0"
 let buildNumber = "1"
 
-let infoPlistPath: Path = "iosApp/Info.plist"
-let previewContentPath = "iosApp/Preview Content"
+let infoPlistPath: Path = "iosApp/Resources/Info.plist"
 let sharedFrameworkName = "SharedLogic"
 let sharedFrameworkSearchPath = "$(SRCROOT)/../sharedLogic/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
 
@@ -61,9 +60,8 @@ let project = Project(
                 "iosApp/**/*.swift",
             ],
             resources: [
-                "iosApp/Assets.xcassets",
-                "iosApp/**/*.storyboard",
-                "iosApp/Preview Content/**",
+                "iosApp/Resources/Assets.xcassets",
+                "iosApp/Resources/**/*.storyboard",
             ],
             scripts: [
                 .pre(
@@ -98,7 +96,6 @@ let project = Project(
                     "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
                     "CODE_SIGN_STYLE": "Manual",
                     "CURRENT_PROJECT_VERSION": setting(buildNumber),
-                    "DEVELOPMENT_ASSET_PATHS": setting("\"\(previewContentPath)\""),
                     "DEVELOPMENT_TEAM": "$(DEVELOPMENT_TEAM)",
                     "ENABLE_PREVIEWS": "YES",
                     "FRAMEWORK_SEARCH_PATHS": setting([
@@ -106,7 +103,7 @@ let project = Project(
                         sharedFrameworkSearchPath,
                     ]),
                     "GENERATE_INFOPLIST_FILE": "YES",
-                    "INFOPLIST_FILE": "iosApp/Info.plist",
+                    "INFOPLIST_FILE": "iosApp/Resources/Info.plist",
                     "INFOPLIST_KEY_UIApplicationSceneManifest_Generation": "YES",
                     "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
                     "INFOPLIST_KEY_UILaunchStoryboardName": "LaunchScreen",
