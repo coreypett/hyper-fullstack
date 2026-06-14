@@ -255,6 +255,7 @@ struct MarketChartBar {
     let high: Double
     let low: Double
     let close: Double
+    let volume: Double
 
     init(shared: CandleBar) {
         self.time = .utc(timestamp: Double(shared.openTimeMillis) / 1_000)
@@ -262,6 +263,7 @@ struct MarketChartBar {
         self.high = shared.high
         self.low = shared.low
         self.close = shared.close
+        self.volume = shared.volume
     }
 
     init(
@@ -269,30 +271,32 @@ struct MarketChartBar {
         open: Double,
         high: Double,
         low: Double,
-        close: Double
+        close: Double,
+        volume: Double
     ) {
         self.time = time
         self.open = open
         self.high = high
         self.low = low
         self.close = close
+        self.volume = volume
     }
 
     static let preview: [MarketChartBar] = [
-        MarketChartBar(time: .string("2026-06-01"), open: 68120, high: 68980, low: 67840, close: 68720),
-        MarketChartBar(time: .string("2026-06-02"), open: 68720, high: 69410, low: 68240, close: 69080),
-        MarketChartBar(time: .string("2026-06-03"), open: 69080, high: 69860, low: 68620, close: 69650),
-        MarketChartBar(time: .string("2026-06-04"), open: 69650, high: 70180, low: 69140, close: 69320),
-        MarketChartBar(time: .string("2026-06-05"), open: 69320, high: 69940, low: 68780, close: 69790),
-        MarketChartBar(time: .string("2026-06-06"), open: 69790, high: 70420, low: 69440, close: 70130),
-        MarketChartBar(time: .string("2026-06-07"), open: 70130, high: 70680, low: 69690, close: 69910),
-        MarketChartBar(time: .string("2026-06-08"), open: 69910, high: 70220, low: 69120, close: 69480),
-        MarketChartBar(time: .string("2026-06-09"), open: 69480, high: 70010, low: 68980, close: 69870),
-        MarketChartBar(time: .string("2026-06-10"), open: 69870, high: 70720, low: 69610, close: 70420),
-        MarketChartBar(time: .string("2026-06-11"), open: 70420, high: 70980, low: 69920, close: 70240),
-        MarketChartBar(time: .string("2026-06-12"), open: 70240, high: 70620, low: 69380, close: 69690),
-        MarketChartBar(time: .string("2026-06-13"), open: 69690, high: 70130, low: 69160, close: 69980),
-        MarketChartBar(time: .string("2026-06-14"), open: 69980, high: 70340, low: 68720, close: 69125.75),
+        MarketChartBar(time: .string("2026-06-01"), open: 68120, high: 68980, low: 67840, close: 68720, volume: 48920),
+        MarketChartBar(time: .string("2026-06-02"), open: 68720, high: 69410, low: 68240, close: 69080, volume: 53110),
+        MarketChartBar(time: .string("2026-06-03"), open: 69080, high: 69860, low: 68620, close: 69650, volume: 61640),
+        MarketChartBar(time: .string("2026-06-04"), open: 69650, high: 70180, low: 69140, close: 69320, volume: 45875),
+        MarketChartBar(time: .string("2026-06-05"), open: 69320, high: 69940, low: 68780, close: 69790, volume: 50280),
+        MarketChartBar(time: .string("2026-06-06"), open: 69790, high: 70420, low: 69440, close: 70130, volume: 72860),
+        MarketChartBar(time: .string("2026-06-07"), open: 70130, high: 70680, low: 69690, close: 69910, volume: 69410),
+        MarketChartBar(time: .string("2026-06-08"), open: 69910, high: 70220, low: 69120, close: 69480, volume: 56300),
+        MarketChartBar(time: .string("2026-06-09"), open: 69480, high: 70010, low: 68980, close: 69870, volume: 47725),
+        MarketChartBar(time: .string("2026-06-10"), open: 69870, high: 70720, low: 69610, close: 70420, volume: 81240),
+        MarketChartBar(time: .string("2026-06-11"), open: 70420, high: 70980, low: 69920, close: 70240, volume: 63880),
+        MarketChartBar(time: .string("2026-06-12"), open: 70240, high: 70620, low: 69380, close: 69690, volume: 58540),
+        MarketChartBar(time: .string("2026-06-13"), open: 69690, high: 70130, low: 69160, close: 69980, volume: 42935),
+        MarketChartBar(time: .string("2026-06-14"), open: 69980, high: 70340, low: 68720, close: 69125.75, volume: 76520),
     ]
 }
 
@@ -809,7 +813,11 @@ private struct MarketCandlestickChart: UIViewRepresentable {
 
         let series = chart.addCandlestickSeries(options: seriesOptions)
         context.coordinator.series = series
+        let volumeSeries = chart.addHistogramSeries(options: volumeSeriesOptions)
+        volumeSeries.priceScale().applyOptions(options: volumePriceScaleOptions)
+        context.coordinator.volumeSeries = volumeSeries
         series.setData(data: bars.map(\.candlestickData))
+        volumeSeries.setData(data: bars.map(\.volumeData))
         chart.timeScale().scrollToRealTime()
 
         return chart
@@ -820,11 +828,13 @@ private struct MarketCandlestickChart: UIViewRepresentable {
         chart.backgroundColor = .clear
         chart.clearWebViewBackground()
         context.coordinator.series?.setData(data: bars.map(\.candlestickData))
+        context.coordinator.volumeSeries?.setData(data: bars.map(\.volumeData))
         chart.timeScale().scrollToRealTime()
     }
 
     final class Coordinator {
         var series: CandlestickSeries?
+        var volumeSeries: HistogramSeries?
     }
 
     private var chartOptions: ChartOptions {
@@ -833,6 +843,10 @@ private struct MarketCandlestickChart: UIViewRepresentable {
 
     private var seriesOptions: CandlestickSeriesOptions {
         marketChartSeriesOptions()
+    }
+
+    private var volumeSeriesOptions: HistogramSeriesOptions {
+        marketChartVolumeSeriesOptions()
     }
 }
 
@@ -1494,6 +1508,14 @@ private extension MarketChartBar {
     var candlestickData: CandlestickData {
         CandlestickData(time: time, open: open, high: high, low: low, close: close)
     }
+
+    var volumeData: HistogramData {
+        HistogramData(color: volumeColor, time: time, value: volume)
+    }
+
+    private var volumeColor: ChartColor {
+        close >= open ? AppColors.bid.opacity(0.26).chartColor : AppColors.ask.opacity(0.26).chartColor
+    }
 }
 
 private extension MarketSymbol {
@@ -1517,13 +1539,34 @@ private func marketChartOptions() -> ChartOptions {
             textColor: AppColors.textSecondary.chartColor,
             attributionLogo: false
         ),
-        rightPriceScale: VisiblePriceScaleOptions(borderVisible: false),
+        rightPriceScale: VisiblePriceScaleOptions(
+            scaleMargins: PriceScaleMargins(top: 0.08, bottom: 0.28),
+            borderVisible: false
+        ),
         timeScale: TimeScaleOptions(borderVisible: false),
         crosshair: CrosshairOptions(mode: .normal),
         grid: GridOptions(
             verticalLines: GridLineOptions(color: AppColors.border.opacity(0.36).chartColor),
             horizontalLines: GridLineOptions(color: AppColors.border.opacity(0.36).chartColor)
         )
+    )
+}
+
+private func marketChartVolumeSeriesOptions() -> HistogramSeriesOptions {
+    HistogramSeriesOptions(
+        lastValueVisible: false,
+        priceScaleId: "volume",
+        priceLineVisible: false,
+        priceFormat: .builtIn(BuiltInPriceFormat(type: .volume, precision: nil, minMove: nil)),
+        color: AppColors.textTertiary.opacity(0.22).chartColor
+    )
+}
+
+private var volumePriceScaleOptions: PriceScaleOptions {
+    PriceScaleOptions(
+        scaleMargins: PriceScaleMargins(top: 0.78, bottom: 0),
+        borderVisible: false,
+        visible: false
     )
 }
 
