@@ -2,12 +2,14 @@ package org.coreypett.fullstack.features.marketdetails.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -59,7 +61,7 @@ private fun RecentTradesHeader(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         HeaderCell("Price(USD)", TextAlign.Start)
-        HeaderCell("Quantity(${market.displayName})", TextAlign.Center)
+        SizeHeaderCell("Size (${market.displayName})")
         HeaderCell("Time", TextAlign.End)
     }
 }
@@ -76,6 +78,25 @@ private fun RowScope.HeaderCell(
         fontSize = 11.sp,
         textAlign = textAlign,
     )
+}
+
+@Composable
+private fun RowScope.SizeHeaderCell(
+    text: String,
+) {
+    Box(
+        modifier = Modifier.weight(1f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.width(RecentTradesSizeColumnWidth),
+            color = MR.colors.text_tertiary.toComposeColor(),
+            fontSize = 11.sp,
+            textAlign = TextAlign.Start,
+            maxLines = 1,
+        )
+    }
 }
 
 @Composable
@@ -105,15 +126,20 @@ private fun RecentTradesRow(
             textAlign = TextAlign.Start,
             maxLines = 1,
         )
-        Text(
-            text = recentTrade.sizeText,
+        Box(
             modifier = Modifier.weight(1f),
-            color = MR.colors.text_primary.toComposeColor(),
-            fontSize = 13.sp,
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = recentTrade.sizeText,
+                modifier = Modifier.width(RecentTradesSizeColumnWidth),
+                color = MR.colors.text_primary.toComposeColor(),
+                fontSize = 13.sp,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Start,
+                maxLines = 1,
+            )
+        }
         Text(
             text = recentTrade.timeMillis.toTradeTime(),
             modifier = Modifier.weight(1f),
@@ -129,3 +155,5 @@ private fun RecentTradesRow(
 private fun Long.toTradeTime(): String {
     return SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(this))
 }
+
+private val RecentTradesSizeColumnWidth = 64.dp

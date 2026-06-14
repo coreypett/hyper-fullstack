@@ -184,7 +184,13 @@ private struct RecentTradesHeaderRow: View {
     var body: some View {
         HStack(spacing: 10) {
             RecentTradesHeaderCell(text: "Price(USD)", alignment: .leading)
-            RecentTradesHeaderCell(text: "Quantity(\(market.displayName))", alignment: .center)
+            Text("Size (\(market.displayName))")
+                .font(.system(size: 11))
+                .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
+                .frame(width: recentTradesSizeColumnWidth, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
             RecentTradesHeaderCell(text: "Time", alignment: .trailing)
         }
         .padding(.horizontal, 4)
@@ -219,6 +225,7 @@ private struct RecentTradesListRow: View {
 
             Text(row.sizeText)
                 .foregroundStyle(MR.colors.shared.text_primary.swiftUIColor)
+                .frame(width: recentTradesSizeColumnWidth, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Text(row.timeText)
@@ -243,3 +250,5 @@ private func recentTradesColor(for side: RecentTradesSide) -> Color {
         return MR.colors.shared.text_secondary.swiftUIColor
     }
 }
+
+private let recentTradesSizeColumnWidth: CGFloat = 64
