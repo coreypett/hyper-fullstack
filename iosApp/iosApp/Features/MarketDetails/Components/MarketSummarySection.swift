@@ -141,7 +141,7 @@ struct MarketSummarySection: View {
             .animation(.easeInOut(duration: 0.22), value: state.isChangeLoading)
 
             VStack(alignment: .trailing, spacing: 4) {
-                ForEach(state.stats, id: \.self) { stat in
+                ForEach(state.stats, id: \.label) { stat in
                     MarketStatRow(stat: stat)
                 }
             }
@@ -169,7 +169,7 @@ private struct MarketStatRow: View {
     let stat: MarketStat
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             Text(stat.label)
                 .font(.system(size: 10))
                 .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
@@ -177,18 +177,22 @@ private struct MarketStatRow: View {
 
             Spacer(minLength: 8)
 
-            if stat.isLoading {
-                SkeletonBlock(width: 58, height: 13, cornerRadius: 3)
-                    .transition(.movingParts.blur.combined(with: .opacity))
-            } else {
-                Text(stat.value)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(MR.colors.shared.text_primary.swiftUIColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .transition(.movingParts.blur.combined(with: .opacity))
+            ZStack(alignment: .trailing) {
+                if stat.isLoading {
+                    SkeletonBlock(width: 58, height: 13, cornerRadius: 3)
+                        .transition(.opacity)
+                } else {
+                    Text(stat.value)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(MR.colors.shared.text_primary.swiftUIColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .transition(.opacity)
+                }
             }
+            .frame(width: 70, height: 16, alignment: .trailing)
         }
+        .frame(height: 16)
         .frame(maxWidth: .infinity, alignment: .trailing)
         .animation(.easeInOut(duration: 0.22), value: stat.isLoading)
     }
