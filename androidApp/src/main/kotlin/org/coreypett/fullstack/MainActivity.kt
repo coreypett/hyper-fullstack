@@ -10,6 +10,7 @@ import org.coreypett.fullstack.di.SharedDependencyGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_Fullstack)
         SharedDependencyGraph.start()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
