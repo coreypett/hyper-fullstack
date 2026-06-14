@@ -3,24 +3,22 @@ package org.coreypett.fullstack.features.marketdetails.components
 import android.view.ViewGroup
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -34,11 +32,19 @@ import com.tradingview.lightweightcharts.api.options.models.CandlestickSeriesOpt
 import com.tradingview.lightweightcharts.api.options.models.ChartOptions
 import com.tradingview.lightweightcharts.api.options.models.GridLineOptions
 import com.tradingview.lightweightcharts.api.options.models.GridOptions
+import com.tradingview.lightweightcharts.api.options.models.HistogramSeriesOptions
 import com.tradingview.lightweightcharts.api.options.models.LayoutOptions
+import com.tradingview.lightweightcharts.api.options.models.LocalizationOptions
+import com.tradingview.lightweightcharts.api.options.models.PriceScaleMargins
+import com.tradingview.lightweightcharts.api.options.models.PriceScaleOptions
 import com.tradingview.lightweightcharts.api.options.models.TimeScaleOptions
 import com.tradingview.lightweightcharts.api.series.common.SeriesData
 import com.tradingview.lightweightcharts.api.series.models.CandlestickData
+import com.tradingview.lightweightcharts.api.series.models.HistogramData
+import com.tradingview.lightweightcharts.api.series.models.PriceFormat
+import com.tradingview.lightweightcharts.api.series.models.PriceScaleId
 import com.tradingview.lightweightcharts.api.series.models.Time
+import com.tradingview.lightweightcharts.runtime.plugins.Eval
 import com.tradingview.lightweightcharts.view.ChartsView
 import org.coreypett.fullstack.features.marketdetails.MarketDetailsChartIntervals
 import org.coreypett.fullstack.market.MR
@@ -53,45 +59,39 @@ fun MarketChartSection(
     candleState: CandleChartState,
     onIntervalSelected: (CandleInterval) -> Unit,
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MR.colors.app_panel.toComposeColor())
-            .border(1.dp, MR.colors.app_border.toComposeColor(), RoundedCornerShape(8.dp))
-            .padding(10.dp),
+            .background(MR.colors.app_background.toComposeColor()),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Image(
-            painter = painterResource(id = MR.images.fullstack_logo.drawableResId),
-            contentDescription = null,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(120.dp)
-                .alpha(0.07f),
+        IntervalSelector(
+            selectedInterval = selectedInterval,
+            onIntervalSelected = onIntervalSelected,
         )
-        androidx.compose.foundation.layout.Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp),
         ) {
-            IntervalSelector(
-                selectedInterval = selectedInterval,
-                onIntervalSelected = onIntervalSelected,
-            )
-            Box(
+            Image(
+                painter = painterResource(id = MR.images.fullstack_logo.drawableResId),
+                contentDescription = null,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(260.dp),
-            ) {
-                if (candleState.bars.isEmpty()) {
-                    FillEmptyState(
-                        message = candleState.message ?: "Loading chart",
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    LightweightCandleChart(
-                        bars = candleState.bars,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                    .align(Alignment.Center)
+                    .size(150.dp)
+                    .alpha(0.18f),
+            )
+            if (candleState.bars.isEmpty()) {
+                FillEmptyState(
+                    message = candleState.message ?: "Loading chart",
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                LightweightCandleChart(
+                    bars = candleState.bars,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }
@@ -104,34 +104,33 @@ private fun IntervalSelector(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        MarketDetailsChartIntervals.forEach { interval ->
-            val isSelected = interval == selectedInterval
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(32.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        if (isSelected) {
-                            MR.colors.app_selection.toComposeColor()
-                        } else {
-                            MR.colors.app_background.toComposeColor()
-                        },
-                    )
-                    .clickable { onIntervalSelected(interval) },
-                contentAlignment = Alignment.Center,
-            ) {
+        Text(
+            text = "Int.",
+            color = MR.colors.text_primary.toComposeColor(),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MarketDetailsChartIntervals.forEach { interval ->
+                val isSelected = interval == selectedInterval
                 Text(
-                    text = interval.displayName,
+                    text = interval.chartLabel,
                     color = if (isSelected) {
                         MR.colors.text_primary.toComposeColor()
                     } else {
-                        MR.colors.text_secondary.toComposeColor()
+                        MR.colors.control_text_dimmed.toComposeColor()
                     },
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    maxLines = 1,
+                    modifier = Modifier.clickable { onIntervalSelected(interval) },
                 )
             }
         }
@@ -143,17 +142,31 @@ private fun LightweightCandleChart(
     bars: List<CandleBar>,
     modifier: Modifier = Modifier,
 ) {
-    val backgroundColor = MR.colors.app_panel.toComposeColor().toArgb()
+    val backgroundColor = android.graphics.Color.TRANSPARENT
     val textColor = MR.colors.text_tertiary.toComposeColor().toArgb()
-    val borderColor = MR.colors.app_border.toComposeColor().toArgb()
+    val gridColor = MR.colors.app_border.toComposeColor().copy(alpha = 0.36f).toArgb()
     val bidColor = MR.colors.bid.toComposeColor().toArgb()
     val askColor = MR.colors.ask.toComposeColor().toArgb()
+    val volumeBidColor = MR.colors.bid.toComposeColor().copy(alpha = 0.26f).toArgb()
+    val volumeAskColor = MR.colors.ask.toComposeColor().copy(alpha = 0.26f).toArgb()
     val holder = remember { CandleChartHolder() }
-    val seriesData = remember(bars, bidColor, askColor) {
+    val priceFormatter = remember { Eval(DollarPriceFormatterJavaScript) }
+    val priceFormat = remember(priceFormatter) {
+        PriceFormat.priceFormatCustom(formatter = priceFormatter, minMove = 0.01f)
+    }
+    val candleData = remember(bars, bidColor, askColor) {
         bars.map { bar ->
             bar.toCandlestickData(
                 upColor = bidColor,
                 downColor = askColor,
+            )
+        }
+    }
+    val volumeData = remember(bars, volumeBidColor, volumeAskColor) {
+        bars.map { bar ->
+            bar.toVolumeData(
+                upColor = volumeBidColor,
+                downColor = volumeAskColor,
             )
         }
     }
@@ -168,7 +181,7 @@ private fun LightweightCandleChart(
                 )
                 setBackgroundColor(backgroundColor)
                 subscribeOnChartStateChange { chartState ->
-                    if (chartState is ChartsView.State.Ready && holder.series == null) {
+                    if (chartState is ChartsView.State.Ready && holder.candleSeries == null) {
                         api.applyOptions(
                             ChartOptions(
                                 layout = LayoutOptions(
@@ -176,13 +189,22 @@ private fun LightweightCandleChart(
                                     textColor = IntColor(textColor),
                                     fontSize = 11,
                                 ),
+                                localization = LocalizationOptions(
+                                    priceFormatter = priceFormatter,
+                                ),
+                                rightPriceScale = PriceScaleOptions(
+                                    autoScale = true,
+                                    scaleMargins = PriceScaleMargins(top = 0.08f, bottom = 0.28f),
+                                    borderVisible = false,
+                                    alignLabels = true,
+                                ),
                                 grid = GridOptions(
                                     vertLines = GridLineOptions(
-                                        color = IntColor(borderColor),
-                                        visible = false,
+                                        color = IntColor(gridColor),
+                                        visible = true,
                                     ),
                                     horzLines = GridLineOptions(
-                                        color = IntColor(borderColor),
+                                        color = IntColor(gridColor),
                                         visible = true,
                                     ),
                                 ),
@@ -191,6 +213,9 @@ private fun LightweightCandleChart(
                                     timeVisible = true,
                                     secondsVisible = false,
                                     rightOffset = 4f,
+                                    barSpacing = 8f,
+                                    minBarSpacing = 5f,
+                                    shiftVisibleRangeOnNewBar = true,
                                 ),
                             ),
                         )
@@ -198,34 +223,62 @@ private fun LightweightCandleChart(
                             CandlestickSeriesOptions(
                                 upColor = IntColor(bidColor),
                                 downColor = IntColor(askColor),
+                                borderVisible = false,
                                 borderUpColor = IntColor(bidColor),
                                 borderDownColor = IntColor(askColor),
                                 wickUpColor = IntColor(bidColor),
                                 wickDownColor = IntColor(askColor),
+                                priceFormat = priceFormat,
                             ),
                         ) { series ->
-                            holder.series = series
-                            series.setData(holder.pendingData.ifEmpty { seriesData })
-                            api.timeScale.fitContent()
+                            holder.candleSeries = series
+                            series.setData(holder.pendingCandleData.ifEmpty { candleData })
+                            api.timeScale.scrollToRealTime()
+                        }
+                        api.addHistogramSeries(
+                            HistogramSeriesOptions(
+                                lastValueVisible = false,
+                                priceLineVisible = false,
+                                priceScaleId = PriceScaleId(VolumePriceScaleId),
+                                priceFormat = PriceFormat.priceFormatBuiltIn(
+                                    type = PriceFormat.Type.VOLUME,
+                                    precision = 0,
+                                    minMove = 1f,
+                                ),
+                            ),
+                        ) { volumeSeries ->
+                            holder.volumeSeries = volumeSeries
+                            volumeSeries.priceScale().applyOptions(
+                                PriceScaleOptions(
+                                    scaleMargins = PriceScaleMargins(top = 0.78f, bottom = 0f),
+                                    borderVisible = false,
+                                    visible = false,
+                                ),
+                            )
+                            volumeSeries.setData(holder.pendingVolumeData.ifEmpty { volumeData })
                         }
                     }
                 }
             }
         },
         update = { chartView ->
-            holder.pendingData = seriesData
-            val series = holder.series
-            if (series != null && seriesData.isNotEmpty()) {
-                series.setData(seriesData)
-                chartView.api.timeScale.fitContent()
+            holder.pendingCandleData = candleData
+            holder.pendingVolumeData = volumeData
+            val candleSeries = holder.candleSeries
+            if (candleSeries != null && candleData.isNotEmpty()) {
+                candleSeries.setData(candleData)
+                holder.volumeSeries?.setData(volumeData)
+                chartView.api.timeScale.scrollToRealTime()
             }
         },
     )
 }
 
 private class CandleChartHolder {
-    var series: SeriesApi? = null
-    var pendingData: List<SeriesData> = emptyList()
+    var candleSeries: SeriesApi? = null
+    var volumeSeries: SeriesApi? = null
+    var pendingCandleData: List<SeriesData> = emptyList()
+    var pendingVolumeData: List<SeriesData> = emptyList()
 }
 
 private fun CandleBar.toCandlestickData(
@@ -244,3 +297,30 @@ private fun CandleBar.toCandlestickData(
         wickColor = IntColor(candleColor),
     )
 }
+
+private fun CandleBar.toVolumeData(
+    upColor: Int,
+    downColor: Int,
+): SeriesData = HistogramData(
+    time = Time.Utc(openTimeMillis / 1_000L),
+    value = volume.toFloat(),
+    color = IntColor(if (close >= open) upColor else downColor),
+)
+
+private val CandleInterval.chartLabel: String
+    get() = if (this == CandleInterval.OneDay) "1D" else displayName
+
+private const val VolumePriceScaleId = "volume"
+
+private val DollarPriceFormatterJavaScript = """
+function(price) {
+    var sign = price < 0 ? '-$' : '$';
+    var rounded = Math.round(Math.abs(price) * 100);
+    var whole = String(Math.floor(rounded / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    var cents = rounded % 100;
+    if (cents === 0) {
+        return sign + whole;
+    }
+    return sign + whole + '.' + (cents < 10 ? '0' + cents : String(cents));
+}
+""".trimIndent()
