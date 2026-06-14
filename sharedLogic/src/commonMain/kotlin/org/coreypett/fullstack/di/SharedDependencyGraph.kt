@@ -8,6 +8,7 @@ import org.coreypett.fullstack.market.price.service.LivePriceService
 import org.coreypett.fullstack.network.HyperliquidInfoClient
 import org.coreypett.fullstack.network.HyperliquidJson
 import org.coreypett.fullstack.network.HyperliquidWebSocketClient
+import org.coreypett.fullstack.orderbook.presentation.OrderBookFeature
 import org.coreypett.fullstack.orderbook.repository.OrderBookRepository
 import org.coreypett.fullstack.orderbook.service.OrderBookService
 import org.koin.core.Koin
@@ -30,6 +31,8 @@ object SharedDependencyGraph {
     fun candleRepository(): CandleRepository = ensureKoin().get()
 
     fun livePriceRepository(): LivePriceRepository = ensureKoin().get()
+
+    fun orderBookFeature(): OrderBookFeature = ensureKoin().get()
 
     private fun ensureKoin(): Koin {
         val context = KoinPlatformTools.defaultContext()
@@ -77,8 +80,13 @@ private val repositoryModule = module {
     single<LivePriceRepository> { LivePriceRepository.Impl(service = get()) }
 }
 
+private val presentationModule = module {
+    factory { OrderBookFeature(repository = get()) }
+}
+
 internal val sharedLogicModules = listOf(
     networkModule,
     serviceModule,
     repositoryModule,
+    presentationModule,
 )
