@@ -12,47 +12,51 @@ import org.coreypett.fullstack.orderbook.model.OrderBookSnapshot
 import org.coreypett.fullstack.orderbook.model.OrderBookUiState
 import org.coreypett.fullstack.orderbook.service.OrderBookService
 
-class OrderBookRepository internal constructor(
-    private val service: OrderBookService,
-) {
-    constructor() : this(OrderBookService.Impl())
+interface OrderBookRepository {
+    fun states(selection: StateFlow<OrderBookSelection>): Flow<OrderBookUiState>
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun states(selection: StateFlow<OrderBookSelection>): Flow<OrderBookUiState> =
-        selection.flatMapLatest { currentSelection ->
-            flow {
-                var lastSnapshot: OrderBookSnapshot? = null
-                emit(OrderBookUiState.Connecting)
+    class Impl internal constructor(
+        private val service: OrderBookService,
+    ) : OrderBookRepository {
+        constructor() : this(OrderBookService.Impl())
 
-                try {
-                    service.snapshotEvents(currentSelection).collect { event ->
-                        when (event) {
-                            is RealtimeFeedEvent.Live -> {
-                                lastSnapshot = event.value
-                                emit(OrderBookUiState.Live(event.value))
-                            }
-                            is RealtimeFeedEvent.Reconnecting -> {
-                                val snapshot = lastSnapshot
-                                if (snapshot == null) {
-                                    emit(OrderBookUiState.Connecting)
-                                } else {
-                                    emit(OrderBookUiState.Stale(snapshot, event.reconnectMessage()))
+        @OptIn(ExperimentalCoroutinesApi::class)
+        override fun states(selection: StateFlow<OrderBookSelection>): Flow<OrderBookUiState> =
+            selection.flatMapLatest { currentSelection ->
+                flow {
+                    var lastSnapshot: OrderBookSnapshot? = null
+                    emit(OrderBookUiState.Connecting)
+
+                    try {
+                        service.snapshotEvents(currentSelection).collect { event ->
+                            when (event) {
+                                is RealtimeFeedEvent.Live -> {
+                                    lastSnapshot = event.value
+                                    emit(OrderBookUiState.Live(event.value))
+                                }
+                                is RealtimeFeedEvent.Reconnecting -> {
+                                    val snapshot = lastSnapshot
+                                    if (snapshot == null) {
+                                        emit(OrderBookUiState.Connecting)
+                                    } else {
+                                        emit(OrderBookUiState.Stale(snapshot, event.reconnectMessage()))
+                                    }
                                 }
                             }
                         }
-                    }
-                } catch (error: Throwable) {
-                    if (error is CancellationException) throw error
-                    val message = error.message ?: "Unable to load order book"
-                    val snapshot = lastSnapshot
-                    if (snapshot == null) {
-                        emit(OrderBookUiState.Failed(message))
-                    } else {
-                        emit(OrderBookUiState.Stale(snapshot, message))
+                    } catch (error: Throwable) {
+                        if (error is CancellationException) throw error
+                        val message = error.message ?: "Unable to load order book"
+                        val snapshot = lastSnapshot
+                        if (snapshot == null) {
+                            emit(OrderBookUiState.Failed(message))
+                        } else {
+                            emit(OrderBookUiState.Stale(snapshot, message))
+                        }
                     }
                 }
             }
-        }
+    }
 }
 
 private fun RealtimeFeedEvent.Reconnecting.reconnectMessage(): String =

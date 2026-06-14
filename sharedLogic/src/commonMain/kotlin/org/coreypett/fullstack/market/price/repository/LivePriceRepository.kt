@@ -12,47 +12,51 @@ import org.coreypett.fullstack.market.price.model.LivePriceUiState
 import org.coreypett.fullstack.market.price.service.LivePriceService
 import org.coreypett.fullstack.network.RealtimeFeedEvent
 
-class LivePriceRepository internal constructor(
-    private val service: LivePriceService,
-) {
-    constructor() : this(LivePriceService.Impl())
+interface LivePriceRepository {
+    fun states(market: StateFlow<MarketSymbol>): Flow<LivePriceUiState>
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun states(market: StateFlow<MarketSymbol>): Flow<LivePriceUiState> =
-        market.flatMapLatest { currentMarket ->
-            flow {
-                var lastPrice: LivePrice? = null
-                emit(LivePriceUiState.Connecting)
+    class Impl internal constructor(
+        private val service: LivePriceService,
+    ) : LivePriceRepository {
+        constructor() : this(LivePriceService.Impl())
 
-                try {
-                    service.priceEvents(currentMarket).collect { event ->
-                        when (event) {
-                            is RealtimeFeedEvent.Live -> {
-                                lastPrice = event.value
-                                emit(LivePriceUiState.Live(event.value))
-                            }
-                            is RealtimeFeedEvent.Reconnecting -> {
-                                val price = lastPrice
-                                if (price == null) {
-                                    emit(LivePriceUiState.Connecting)
-                                } else {
-                                    emit(LivePriceUiState.Stale(price, event.reconnectMessage()))
+        @OptIn(ExperimentalCoroutinesApi::class)
+        override fun states(market: StateFlow<MarketSymbol>): Flow<LivePriceUiState> =
+            market.flatMapLatest { currentMarket ->
+                flow {
+                    var lastPrice: LivePrice? = null
+                    emit(LivePriceUiState.Connecting)
+
+                    try {
+                        service.priceEvents(currentMarket).collect { event ->
+                            when (event) {
+                                is RealtimeFeedEvent.Live -> {
+                                    lastPrice = event.value
+                                    emit(LivePriceUiState.Live(event.value))
+                                }
+                                is RealtimeFeedEvent.Reconnecting -> {
+                                    val price = lastPrice
+                                    if (price == null) {
+                                        emit(LivePriceUiState.Connecting)
+                                    } else {
+                                        emit(LivePriceUiState.Stale(price, event.reconnectMessage()))
+                                    }
                                 }
                             }
                         }
-                    }
-                } catch (error: Throwable) {
-                    if (error is CancellationException) throw error
-                    val message = error.message ?: "Unable to load live price"
-                    val price = lastPrice
-                    if (price == null) {
-                        emit(LivePriceUiState.Failed(message))
-                    } else {
-                        emit(LivePriceUiState.Stale(price, message))
+                    } catch (error: Throwable) {
+                        if (error is CancellationException) throw error
+                        val message = error.message ?: "Unable to load live price"
+                        val price = lastPrice
+                        if (price == null) {
+                            emit(LivePriceUiState.Failed(message))
+                        } else {
+                            emit(LivePriceUiState.Stale(price, message))
+                        }
                     }
                 }
             }
-        }
+    }
 }
 
 private fun RealtimeFeedEvent.Reconnecting.reconnectMessage(): String =

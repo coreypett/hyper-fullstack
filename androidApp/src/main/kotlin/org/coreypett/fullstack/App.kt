@@ -56,7 +56,9 @@ import org.coreypett.fullstack.orderbook.repository.OrderBookRepository
 
 @Composable
 @Preview
-fun App() {
+fun App(
+    orderBookRepository: OrderBookRepository = OrderBookRepository.Impl(),
+) {
     MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -64,9 +66,8 @@ fun App() {
         ) {
             var selection by remember { mutableStateOf(OrderBookSelection()) }
             val selectionFlow = remember { MutableStateFlow(selection) }
-            val repository = remember { OrderBookRepository() }
-            val uiState by remember(repository) {
-                repository.states(selectionFlow)
+            val uiState by remember(orderBookRepository) {
+                orderBookRepository.states(selectionFlow)
             }.collectAsState(OrderBookUiState.Connecting)
 
             LaunchedEffect(selection) {
