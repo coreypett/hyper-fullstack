@@ -5,6 +5,13 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.mokoResources)
+    alias(libs.plugins.skie)
+}
+
+skie {
+    analytics {
+        enabled.set(false)
+    }
 }
 
 kotlin {
