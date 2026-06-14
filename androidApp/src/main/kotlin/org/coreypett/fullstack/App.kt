@@ -26,17 +26,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,42 +41,47 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.coreypett.fullstack.market.MR
-import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.market.model.MarketSymbol
-import org.coreypett.fullstack.orderbook.model.OrderBookLevel
+import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.orderbook.model.OrderBookSelection
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
-import org.coreypett.fullstack.orderbook.model.OrderBookSnapshot
-import org.coreypett.fullstack.orderbook.model.OrderBookUiState
 import org.coreypett.fullstack.orderbook.model.PricePrecision
-import org.coreypett.fullstack.orderbook.repository.OrderBookRepository
+import org.coreypett.fullstack.orderbook.presentation.OrderBookFeature
+import org.coreypett.fullstack.orderbook.presentation.OrderBookRowDisplay
+import org.coreypett.fullstack.orderbook.presentation.OrderBookStatus
+import org.coreypett.fullstack.orderbook.presentation.OrderBookViewState
 
 @Composable
 @Preview
 fun App(
-    orderBookRepository: OrderBookRepository = OrderBookRepository.Impl(),
+    orderBookFeature: OrderBookFeature = OrderBookFeature.preview(),
 ) {
+    DisposableEffect(orderBookFeature) {
+        onDispose {
+            orderBookFeature.close()
+        }
+    }
+
     MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = AppColors.Background,
         ) {
-            var selection by remember { mutableStateOf(OrderBookSelection()) }
-            val selectionFlow = remember { MutableStateFlow(selection) }
-            val uiState by remember(orderBookRepository) {
-                orderBookRepository.states(selectionFlow)
-            }.collectAsState(OrderBookUiState.Connecting)
-
-            LaunchedEffect(selection) {
-                selectionFlow.value = selection
-            }
+            val selection by orderBookFeature.selectionState.collectAsState()
+            val viewState by orderBookFeature.state.collectAsState()
 
             OrderBookScreen(
                 selection = selection,
-                uiState = uiState,
-                onSelectionChange = { selection = it },
+                viewState = viewState,
+                onSelectionChange = { nextSelection ->
+                    if (nextSelection.market != selection.market) {
+                        orderBookFeature.selectMarket(nextSelection.market)
+                    }
+                    if (nextSelection.precision != selection.precision) {
+                        orderBookFeature.selectPrecision(nextSelection.precision)
+                    }
+                },
             )
         }
     }
@@ -88,7 +90,7 @@ fun App(
 @Composable
 private fun OrderBookScreen(
     selection: OrderBookSelection,
-    uiState: OrderBookUiState,
+    viewState: OrderBookViewState,
     onSelectionChange: (OrderBookSelection) -> Unit,
 ) {
     Column(
@@ -110,8 +112,8 @@ private fun OrderBookScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = stateLabel(uiState),
-                    color = stateColor(uiState),
+                    text = viewState.statusLabel,
+                    color = statusColor(viewState.status),
                     fontSize = 12.sp,
                 )
             }
@@ -143,11 +145,10 @@ private fun OrderBookScreen(
 
         Spacer(Modifier.height(14.dp))
 
-        when (uiState) {
-            OrderBookUiState.Connecting -> CenterMessage("Connecting")
-            is OrderBookUiState.Failed -> CenterMessage(uiState.message)
-            is OrderBookUiState.Live -> OrderBook(snapshot = uiState.snapshot)
-            is OrderBookUiState.Stale -> OrderBook(snapshot = uiState.snapshot)
+        if (viewState.hasRows) {
+            OrderBook(viewState = viewState)
+        } else {
+            CenterMessage(viewState.centerMessage ?: "Connecting")
         }
     }
 }
@@ -193,7 +194,7 @@ private fun <T> SegmentedSelector(
 }
 
 @Composable
-private fun OrderBook(snapshot: OrderBookSnapshot) {
+private fun OrderBook(viewState: OrderBookViewState) {
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -202,13 +203,13 @@ private fun OrderBook(snapshot: OrderBookSnapshot) {
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 12.dp),
         ) {
-            items(snapshot.asks.asReversed(), key = { "ask:${it.price}" }) { level ->
+            items(viewState.asks, key = { "ask:${it.priceText}" }) { level ->
                 LevelRow(level = level)
             }
             item {
-                SpreadRow(snapshot.spreadText)
+                SpreadRow(viewState.spreadText ?: "--")
             }
-            items(snapshot.bids, key = { "bid:${it.price}" }) { level ->
+            items(viewState.bids, key = { "bid:${it.priceText}" }) { level ->
                 LevelRow(level = level)
             }
         }
@@ -242,7 +243,7 @@ private fun RowScope.HeaderCell(text: String, textAlign: TextAlign) {
 }
 
 @Composable
-private fun LevelRow(level: OrderBookLevel) {
+private fun LevelRow(level: OrderBookRowDisplay) {
     val sideColor = if (level.side == OrderBookSide.Bid) AppColors.Bid else AppColors.Ask
     val flashColor = when (level.change) {
         LevelChange.Up -> AppColors.UpFlash
@@ -288,7 +289,7 @@ private fun LevelRow(level: OrderBookLevel) {
                 maxLines = 1,
             )
             Text(
-                text = level.orderCount.toString(),
+                text = level.orderCountText,
                 modifier = Modifier.weight(1f),
                 color = AppColors.TextSecondary,
                 fontSize = 13.sp,
@@ -343,19 +344,12 @@ private fun CenterMessage(message: String) {
     }
 }
 
-private fun stateLabel(uiState: OrderBookUiState): String = when (uiState) {
-    OrderBookUiState.Connecting -> "Connecting"
-    is OrderBookUiState.Failed -> "Disconnected"
-    is OrderBookUiState.Live -> "Live"
-    is OrderBookUiState.Stale -> "Reconnecting"
-}
-
 @Composable
-private fun stateColor(uiState: OrderBookUiState): Color = when (uiState) {
-    OrderBookUiState.Connecting -> AppColors.TextSecondary
-    is OrderBookUiState.Failed -> AppColors.Ask
-    is OrderBookUiState.Live -> AppColors.Bid
-    is OrderBookUiState.Stale -> AppColors.Accent
+private fun statusColor(status: OrderBookStatus): Color = when (status) {
+    OrderBookStatus.Connecting -> AppColors.TextSecondary
+    OrderBookStatus.Failed -> AppColors.Ask
+    OrderBookStatus.Live -> AppColors.Bid
+    OrderBookStatus.Stale -> AppColors.Accent
 }
 
 private object AppColors {

@@ -14,9 +14,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val orderBookRepository = SharedDependencyGraph.orderBookRepository()
+        val orderBookFeature = SharedDependencyGraph.orderBookFeature()
         setContent {
-            App(orderBookRepository = orderBookRepository)
+            App(orderBookFeature = orderBookFeature)
         }
     }
 }
