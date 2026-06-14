@@ -7,6 +7,7 @@ import PackageDescription
     let packageSettings = PackageSettings(
         productTypes: [
             "LightweightCharts": .framework,
+            "Pow": .framework,
         ]
     )
 #endif
@@ -15,5 +16,6 @@ let package = Package(
     name: "HyperFullstackDependencies",
     dependencies: [
         .package(url: "https://github.com/tradingview/LightweightChartsIOS.git", exact: "5.2.0"),
+        .package(url: "https://github.com/EmergeTools/Pow", from: "1.0.0"),
     ]
 )

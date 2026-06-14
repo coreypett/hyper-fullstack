@@ -88,6 +88,7 @@ let project = Project(
             ],
             dependencies: [
                 .external(name: "LightweightCharts"),
+                .external(name: "Pow"),
             ],
             settings: .settings(
                 base: [
