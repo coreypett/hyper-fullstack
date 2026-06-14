@@ -64,9 +64,6 @@ let project = Project(
                 "iosApp/Assets.xcassets",
                 "iosApp/Preview Content/**",
             ],
-            dependencies: [
-                .external(name: "LightweightCharts"),
-            ],
             scripts: [
                 .pre(
                     script: """
@@ -88,6 +85,9 @@ let project = Project(
                     name: "Compile Kotlin Framework",
                     basedOnDependencyAnalysis: false
                 ),
+            ],
+            dependencies: [
+                .external(name: "LightweightCharts"),
             ],
             settings: .settings(
                 base: [
