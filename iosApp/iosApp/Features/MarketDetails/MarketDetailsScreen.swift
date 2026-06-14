@@ -12,10 +12,12 @@ final class MarketDetailsViewModel: ObservableObject {
     @Published private(set) var chartBars: [MarketChartBar]
     @Published private(set) var isChartLoading: Bool
     @Published private(set) var orderBook: OrderBookState
+    @Published private(set) var trades: TradeState
 
     private let orderBookFeature: OrderBookFeature?
     private let candleChartFeature: CandleChartFeature?
     private let marketSummaryFeature: MarketSummaryFeature?
+    private let tradeFeature: TradeFeature?
     private var latestOrderBookViewState: OrderBookViewState?
     private var latestMarketSummaryViewState: MarketSummaryViewState?
     private var latestCandlePriceText: String?
@@ -23,16 +25,19 @@ final class MarketDetailsViewModel: ObservableObject {
     init(
         orderBookFeature: OrderBookFeature? = SharedDependencyGraph.shared.orderBookFeature(),
         candleChartFeature: CandleChartFeature? = SharedDependencyGraph.shared.candleChartFeature(),
-        marketSummaryFeature: MarketSummaryFeature? = SharedDependencyGraph.shared.marketSummaryFeature()
+        marketSummaryFeature: MarketSummaryFeature? = SharedDependencyGraph.shared.marketSummaryFeature(),
+        tradeFeature: TradeFeature? = SharedDependencyGraph.shared.tradeFeature()
     ) {
         let initialSelection = orderBookFeature?.selection ?? OrderBookSelection(market: .btc, precision: .five)
         let initialCandleSelection = candleChartFeature?.selection ?? CandleSelection(market: initialSelection.market, interval: .oneHour)
         let initialOrderBook = orderBookFeature?.currentState
         let initialCandles = candleChartFeature?.currentState.bars ?? []
         let initialMarketSummary = marketSummaryFeature?.currentState
+        let initialTrades = tradeFeature?.currentState
         self.orderBookFeature = orderBookFeature
         self.candleChartFeature = candleChartFeature
         self.marketSummaryFeature = marketSummaryFeature
+        self.tradeFeature = tradeFeature
         self.latestOrderBookViewState = initialOrderBook
         self.latestMarketSummaryViewState = initialMarketSummary
         self.latestCandlePriceText = initialCandles.last?.closeText
@@ -48,7 +53,9 @@ final class MarketDetailsViewModel: ObservableObject {
         self.chartBars = candleChartFeature == nil ? MarketChartBar.preview : initialCandles.map(MarketChartBar.init)
         self.isChartLoading = candleChartFeature != nil && initialCandles.isEmpty
         self.orderBook = orderBookFeature == nil ? .preview : initialOrderBook.map(OrderBookState.init) ?? .loading
+        self.trades = tradeFeature == nil ? .preview : initialTrades.map(TradeState.init) ?? .loading
         marketSummaryFeature?.selectMarket(market: initialSelection.market)
+        tradeFeature?.selectMarket(market: initialSelection.market)
 
         orderBookFeature?.observe { [weak self] state in
             MainActor.assumeIsolated {
@@ -93,6 +100,13 @@ final class MarketDetailsViewModel: ObservableObject {
                 )
             }
         }
+
+        tradeFeature?.observe { [weak self] state in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.trades = TradeState(shared: state)
+            }
+        }
     }
 
     deinit {
@@ -102,12 +116,15 @@ final class MarketDetailsViewModel: ObservableObject {
         candleChartFeature?.close()
         marketSummaryFeature?.clearObserver()
         marketSummaryFeature?.close()
+        tradeFeature?.clearObserver()
+        tradeFeature?.close()
     }
 
     func selectMarket(_ market: MarketSymbol) {
         orderBookFeature?.selectMarket(market: market)
         candleChartFeature?.selectMarket(market: market)
         marketSummaryFeature?.selectMarket(market: market)
+        tradeFeature?.selectMarket(market: market)
         latestOrderBookViewState = nil
         latestMarketSummaryViewState = nil
         latestCandlePriceText = nil
@@ -121,6 +138,7 @@ final class MarketDetailsViewModel: ObservableObject {
         chartBars = candleChartFeature == nil ? MarketChartBar.preview : []
         isChartLoading = candleChartFeature != nil
         orderBook = orderBookFeature == nil ? .preview : .loading
+        trades = tradeFeature == nil ? .preview : .loading
         selection = selection.doCopy(market: market, precision: selection.precision)
     }
 
@@ -135,7 +153,7 @@ final class MarketDetailsViewModel: ObservableObject {
     }
 
     static var preview: MarketDetailsViewModel {
-        MarketDetailsViewModel(orderBookFeature: nil, candleChartFeature: nil, marketSummaryFeature: nil)
+        MarketDetailsViewModel(orderBookFeature: nil, candleChartFeature: nil, marketSummaryFeature: nil, tradeFeature: nil)
     }
 }
 
@@ -398,8 +416,121 @@ struct OrderBookLevelPair {
     let ask: OrderBookRow?
 }
 
+struct TradeState {
+    let status: TradeStatus
+    let statusLabel: String
+    let centerMessage: String?
+    let rows: [TradeRow]
+    let isLoading: Bool
+
+    var hasRows: Bool {
+        !rows.isEmpty
+    }
+
+    static let preview = TradeState(
+        status: .live,
+        statusLabel: "Live",
+        centerMessage: nil,
+        rows: [
+            TradeRow(side: .buy, sideText: "Buy", priceText: "$69,125.50", sizeText: "0.42", timeMillis: 1_710_000_000_000, tradeId: 42),
+            TradeRow(side: .sell, sideText: "Sell", priceText: "$69,124", sizeText: "0.25", timeMillis: 1_710_000_000_100, tradeId: 43),
+            TradeRow(side: .buy, sideText: "Buy", priceText: "$69,126", sizeText: "0.18", timeMillis: 1_710_000_000_200, tradeId: 44),
+        ],
+        isLoading: false
+    )
+
+    static let loading = TradeState(
+        status: .connecting,
+        statusLabel: "Connecting",
+        centerMessage: nil,
+        rows: [],
+        isLoading: true
+    )
+
+    init(shared: TradeViewState) {
+        self.status = shared.status
+        self.statusLabel = shared.statusLabel
+        self.centerMessage = shared.centerMessage
+        self.rows = shared.trades.map(TradeRow.init)
+        self.isLoading = shared.status == .connecting && !shared.hasTrades
+    }
+
+    init(
+        status: TradeStatus,
+        statusLabel: String,
+        centerMessage: String?,
+        rows: [TradeRow],
+        isLoading: Bool
+    ) {
+        self.status = status
+        self.statusLabel = statusLabel
+        self.centerMessage = centerMessage
+        self.rows = rows
+        self.isLoading = isLoading
+    }
+}
+
+struct TradeRow: Hashable {
+    let side: TradeSide
+    let sideText: String
+    let priceText: String
+    let sizeText: String
+    let timeMillis: Int64
+    let tradeId: Int64
+
+    var timeText: String {
+        Self.timeFormatter.string(from: Date(timeIntervalSince1970: Double(timeMillis) / 1_000))
+    }
+
+    init(shared: TradeRowDisplay) {
+        self.side = shared.side
+        self.sideText = shared.sideText
+        self.priceText = shared.priceText
+        self.sizeText = shared.sizeText
+        self.timeMillis = shared.timeMillis
+        self.tradeId = shared.tradeId
+    }
+
+    init(
+        side: TradeSide,
+        sideText: String,
+        priceText: String,
+        sizeText: String,
+        timeMillis: Int64,
+        tradeId: Int64
+    ) {
+        self.side = side
+        self.sideText = sideText
+        self.priceText = priceText
+        self.sizeText = sizeText
+        self.timeMillis = timeMillis
+        self.tradeId = tradeId
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }()
+}
+
+private enum MarketDataPanel: CaseIterable {
+    case orderBook
+    case trades
+
+    var title: String {
+        switch self {
+        case .orderBook:
+            return "Order Book"
+        case .trades:
+            return "Trades"
+        }
+    }
+}
+
 struct MarketDetailsScreen: View {
     @StateObject private var viewModel: MarketDetailsViewModel
+    @State private var selectedMarketDataPanel: MarketDataPanel = .orderBook
 
     init(viewModel: MarketDetailsViewModel = MarketDetailsViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -426,9 +557,12 @@ struct MarketDetailsScreen: View {
                     onSelectInterval: viewModel.selectChartInterval
                 )
 
-                OrderBookSection(
+                MarketDataSection(
+                    selectedPanel: selectedMarketDataPanel,
                     selection: viewModel.selection,
                     orderBook: viewModel.orderBook,
+                    trades: viewModel.trades,
+                    onSelectPanel: { selectedMarketDataPanel = $0 },
                     onSelectPrecision: viewModel.selectPrecision
                 )
                 .padding(.horizontal, 16)
@@ -702,28 +836,81 @@ private struct MarketCandlestickChart: UIViewRepresentable {
     }
 }
 
-private struct OrderBookSection: View {
+private struct MarketDataSection: View {
+    let selectedPanel: MarketDataPanel
     let selection: OrderBookSelection
     let orderBook: OrderBookState
+    let trades: TradeState
+    let onSelectPanel: (MarketDataPanel) -> Void
     let onSelectPrecision: (PricePrecision) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center) {
-                Text("Order Book")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .lineLimit(1)
+            HStack(alignment: .center, spacing: 12) {
+                MarketDataPanelSelector(
+                    selectedPanel: selectedPanel,
+                    onSelect: onSelectPanel
+                )
 
                 Spacer(minLength: 12)
 
-                PrecisionSelector(
-                    selected: selection.precision,
-                    onSelect: onSelectPrecision
-                )
-                .frame(width: 164)
+                if selectedPanel == .orderBook {
+                    GroupingMenu(
+                        selected: selection.precision,
+                        onSelect: onSelectPrecision
+                    )
+                    .transition(.movingParts.blur.combined(with: .opacity))
+                }
             }
 
+            Group {
+                switch selectedPanel {
+                case .orderBook:
+                    OrderBookSection(orderBook: orderBook)
+                case .trades:
+                    TradesSection(trades: trades)
+                }
+            }
+            .animation(.easeInOut(duration: 0.18), value: selectedPanel)
+        }
+    }
+}
+
+private struct MarketDataPanelSelector: View {
+    let selectedPanel: MarketDataPanel
+    let onSelect: (MarketDataPanel) -> Void
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(MarketDataPanel.allCases, id: \.self) { panel in
+                Button {
+                    onSelect(panel)
+                } label: {
+                    Text(panel.title)
+                        .font(.system(size: 13, weight: selectedPanel == panel ? .semibold : .medium))
+                        .foregroundStyle(selectedPanel == panel ? AppColors.textPrimary : AppColors.textSecondary)
+                        .frame(minWidth: 86)
+                        .frame(height: 34)
+                        .padding(.horizontal, 6)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .background(selectedPanel == panel ? AppColors.selection : Color.clear)
+                        .clipShape(Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(AppColors.panel.opacity(0.62))
+        .clipShape(Capsule(style: .continuous))
+    }
+}
+
+private struct OrderBookSection: View {
+    let orderBook: OrderBookState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
             if orderBook.isLoading {
                 OrderBookSkeleton()
                     .transition(.movingParts.blur.combined(with: .opacity))
@@ -740,52 +927,132 @@ private struct OrderBookSection: View {
     }
 }
 
-private struct PrecisionSelector: View {
+private struct TradesSection: View {
+    let trades: TradeState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if trades.isLoading {
+                TradesSkeleton()
+                    .transition(.movingParts.blur.combined(with: .opacity))
+            } else if trades.hasRows {
+                TradesList(rows: trades.rows)
+                    .transition(.movingParts.blur.combined(with: .opacity))
+            } else {
+                CenterMessage(text: trades.centerMessage ?? "Connecting")
+                    .frame(height: 180)
+                    .transition(.movingParts.blur.combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.22), value: trades.isLoading)
+    }
+}
+
+private struct TradesList: View {
+    let rows: [TradeRow]
+
+    var body: some View {
+        LazyVStack(spacing: 0) {
+            TradeHeaderRow()
+
+            ForEach(Array(rows.prefix(18).enumerated()), id: \.element) { _, row in
+                TradeListRow(row: row)
+            }
+        }
+    }
+}
+
+private struct TradeHeaderRow: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            TradeHeaderCell(text: "Price (USD)", alignment: .leading)
+            TradeHeaderCell(text: "Size", alignment: .trailing)
+            TradeHeaderCell(text: "Time", alignment: .trailing, width: 72)
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 6)
+    }
+}
+
+private struct TradeHeaderCell: View {
+    let text: String
+    let alignment: Alignment
+    var width: CGFloat?
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11))
+            .foregroundStyle(AppColors.textTertiary)
+            .frame(maxWidth: width == nil ? .infinity : nil, alignment: alignment)
+            .frame(width: width, alignment: alignment)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+    }
+}
+
+private struct TradeListRow: View {
+    let row: TradeRow
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(row.priceText)
+                .foregroundStyle(tradeColor(for: row.side))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(row.sizeText)
+                .foregroundStyle(AppColors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+
+            Text(row.timeText)
+                .foregroundStyle(AppColors.textSecondary)
+                .frame(width: 72, alignment: .trailing)
+        }
+        .font(.system(size: 13, design: .monospaced))
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+        .frame(height: 30)
+        .padding(.horizontal, 4)
+    }
+}
+
+private struct GroupingMenu: View {
     let selected: PricePrecision
     let onSelect: (PricePrecision) -> Void
 
     var body: some View {
-        SegmentedSelector(
-            values: [.two, .three, .four, .five],
-            selected: selected,
-            label: { "\($0.nSigFigs)" },
-            onSelect: onSelect
-        )
-    }
-}
-
-private struct SegmentedSelector<Value: Hashable>: View {
-    let values: [Value]
-    let selected: Value
-    let label: (Value) -> String
-    let onSelect: (Value) -> Void
-
-    var body: some View {
-        HStack(spacing: 3) {
-            ForEach(values, id: \.self) { value in
+        Menu {
+            ForEach([PricePrecision.two, .three, .four, .five], id: \.self) { precision in
                 Button {
-                    onSelect(value)
+                    onSelect(precision)
                 } label: {
-                    Text(label(value))
-                        .font(.system(size: 13, weight: selected == value ? .semibold : .regular))
-                        .foregroundStyle(selected == value ? AppColors.textPrimary : AppColors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 34)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .background(selected == value ? AppColors.selection : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    HStack {
+                        Text(groupingLabel(for: precision))
+                        if selected == precision {
+                            Image(systemName: "checkmark")
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
             }
+        } label: {
+            HStack(spacing: 6) {
+                Text("Grouping")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(AppColors.textTertiary)
+
+                Text("\(selected.nSigFigs)")
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(AppColors.textPrimary)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+            .frame(height: 34)
+            .padding(.horizontal, 10)
+            .background(AppColors.panel.opacity(0.62))
+            .clipShape(Capsule(style: .continuous))
         }
-        .padding(3)
-        .background(AppColors.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AppColors.border, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
     }
 }
 
@@ -1079,6 +1346,45 @@ private struct SkeletonOrderBookRow: View {
     }
 }
 
+private struct TradesSkeleton: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            TradeHeaderRow()
+
+            ForEach(0..<7, id: \.self) { index in
+                SkeletonTradeRow(seed: index)
+            }
+        }
+    }
+}
+
+private struct SkeletonTradeRow: View {
+    let seed: Int
+
+    var body: some View {
+        HStack(spacing: 10) {
+            SkeletonBlock(width: priceWidth(for: seed), height: 13, cornerRadius: 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            SkeletonBlock(width: sizeWidth(for: seed), height: 13, cornerRadius: 3)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+
+            SkeletonBlock(width: 58, height: 13, cornerRadius: 3)
+                .frame(width: 72, alignment: .trailing)
+        }
+        .frame(height: 30)
+        .padding(.horizontal, 4)
+    }
+
+    private func priceWidth(for seed: Int) -> CGFloat {
+        [72, 84, 64, 78][seed % 4]
+    }
+
+    private func sizeWidth(for seed: Int) -> CGFloat {
+        [34, 46, 38, 52][seed % 4]
+    }
+}
+
 private struct SkeletonBlock: View {
     let width: CGFloat
     let height: CGFloat
@@ -1127,6 +1433,19 @@ private func statusColor(for status: OrderBookStatus) -> Color {
     return AppColors.textSecondary
 }
 
+private func statusColor(for status: TradeStatus) -> Color {
+    if status == .failed {
+        return AppColors.ask
+    }
+    if status == .live {
+        return AppColors.bid
+    }
+    if status == .stale {
+        return AppColors.accent
+    }
+    return AppColors.textSecondary
+}
+
 private func changeColor(for direction: MarketChangeDirection) -> Color {
     switch direction {
     case .up:
@@ -1142,6 +1461,10 @@ private func intervalLabel(for interval: CandleInterval) -> String {
     interval == .oneDay ? "1D" : interval.displayName
 }
 
+private func groupingLabel(for precision: PricePrecision) -> String {
+    "\(precision.nSigFigs) significant figures"
+}
+
 private let chartIntervals: [CandleInterval] = [
     .oneMinute,
     .fiveMinutes,
@@ -1154,6 +1477,17 @@ private let orderBookPriceGap: CGFloat = 8
 
 private func sideColor(for side: OrderBookSide) -> Color {
     side == .bid ? AppColors.bid : AppColors.ask
+}
+
+private func tradeColor(for side: TradeSide) -> Color {
+    switch side {
+    case .buy:
+        return AppColors.bid
+    case .sell:
+        return AppColors.ask
+    case .unknown:
+        return AppColors.textSecondary
+    }
 }
 
 private extension MarketChartBar {

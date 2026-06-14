@@ -8,11 +8,14 @@ This project keeps the assignment-critical trading logic in KMP while leaving th
 
 - Owns the Hyperliquid websocket connection.
 - Builds the `l2Book` subscription with `coin` and `nSigFigs`.
+- Builds the `trades` subscription with `coin` for recent market executions.
 - Parses raw websocket frames into stable `OrderBookSnapshot` values.
+- Parses raw websocket `WsTrade[]` frames into stable `Trade` values.
 - Normalizes asks, bids, spread, depth fractions, and row-level size-change hints.
 - Applies shared websocket reconnect/backoff handling and preserves last-known data as stale UI state.
 - Multiplexes default realtime feed subscriptions onto one shared websocket connection.
 - Exports a narrow `OrderBookRepository.states(selection)` flow for platform UI.
+- Exports a narrow `TradeRepository.states(selection)` flow for platform UI.
 
 `iosApp`
 
@@ -38,6 +41,6 @@ This project keeps the assignment-critical trading logic in KMP while leaving th
 
 ## Next Build Slice
 
-1. Add a SwiftUI `OrderBookViewModel` wrapper around `OrderBookRepository`.
-2. Build the native iOS order book view with `ScrollView` or `List`, segmented controls, row depth bars, flash animations, and selection haptics.
+1. Add deeper Android market-details parity for candles, summary, and recent trades.
+2. Tune shared market-data throttling if `l2Book`, candles, summary, and trades are active on more app surfaces.
 3. Configure `iosApp/.env`, then run `cd iosApp && bundle exec fastlane ios sync_development_signing`.
