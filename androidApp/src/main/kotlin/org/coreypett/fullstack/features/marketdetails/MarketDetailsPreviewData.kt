@@ -8,10 +8,10 @@ import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.market.summary.model.MarketSummaryChangeDirection
 import org.coreypett.fullstack.market.summary.model.MarketSummaryStatus
 import org.coreypett.fullstack.market.summary.model.MarketSummaryViewState
-import org.coreypett.fullstack.market.trade.model.TradeSide
-import org.coreypett.fullstack.market.trade.presentation.TradeRowDisplay
-import org.coreypett.fullstack.market.trade.presentation.TradeStatus
-import org.coreypett.fullstack.market.trade.presentation.TradeViewState
+import org.coreypett.fullstack.market.trade.model.RecentTradesSide
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesRowDisplay
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesStatus
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
 import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
 import org.coreypett.fullstack.orderbook.model.PricePrecision
@@ -43,7 +43,7 @@ internal val MarketDetailsUiState.Companion.Preview: MarketDetailsUiState
             bars = previewBars(),
         ),
         orderBookState = previewOrderBookState(),
-        tradeState = previewTradeState(),
+        recentTradesState = previewRecentTradesState(),
     )
 
 private fun previewOrderBookState(): OrderBookViewState {
@@ -78,13 +78,13 @@ private fun previewOrderBookState(): OrderBookViewState {
     )
 }
 
-private fun previewTradeState(): TradeViewState = TradeViewState(
-    status = TradeStatus.Live,
+private fun previewRecentTradesState(): RecentTradesViewState = RecentTradesViewState(
+    status = RecentTradesStatus.Live,
     statusLabel = "Live",
     centerMessage = null,
-    trades = List(10) { index ->
-        TradeRowDisplay(
-            side = if (index % 2 == 0) TradeSide.Buy else TradeSide.Sell,
+    recentTrades = List(10) { index ->
+        RecentTradesRowDisplay(
+            side = if (index % 2 == 0) RecentTradesSide.Buy else RecentTradesSide.Sell,
             sideText = if (index % 2 == 0) "Buy" else "Sell",
             priceText = "$${104_210 + index * 11}.50",
             sizeText = "${(0.32 + index * 0.13).format(2)}",

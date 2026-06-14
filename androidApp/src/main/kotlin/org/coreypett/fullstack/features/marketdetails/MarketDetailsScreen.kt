@@ -39,7 +39,7 @@ fun MarketDetailsRoute(
     val summaryState by features.marketSummaryFeature.state.collectAsState()
     val candleState by features.candleChartFeature.state.collectAsState()
     val orderBookState by features.orderBookFeature.state.collectAsState()
-    val tradeState by features.tradeFeature.state.collectAsState()
+    val recentTradesState by features.recentTradesFeature.state.collectAsState()
     var selectedPanel by rememberSaveable { mutableStateOf(MarketDetailsPanel.OrderBook) }
 
     DisposableEffect(features) {
@@ -47,7 +47,7 @@ fun MarketDetailsRoute(
             features.orderBookFeature.close()
             features.candleChartFeature.close()
             features.marketSummaryFeature.close()
-            features.tradeFeature.close()
+            features.recentTradesFeature.close()
         }
     }
 
@@ -58,7 +58,7 @@ fun MarketDetailsRoute(
         summaryState,
         candleState,
         orderBookState,
-        tradeState,
+        recentTradesState,
     ) {
         MarketDetailsUiState(
             selectedMarket = orderBookSelection.market,
@@ -68,7 +68,7 @@ fun MarketDetailsRoute(
             summaryState = summaryState,
             candleState = candleState,
             orderBookState = orderBookState,
-            tradeState = tradeState,
+            recentTradesState = recentTradesState,
         )
     }
 
@@ -79,7 +79,7 @@ fun MarketDetailsRoute(
                 features.orderBookFeature.selectMarket(market)
                 features.candleChartFeature.selectMarket(market)
                 features.marketSummaryFeature.selectMarket(market)
-                features.tradeFeature.selectMarket(market)
+                features.recentTradesFeature.selectMarket(market)
             },
             onIntervalSelected = features.candleChartFeature::selectInterval,
             onPrecisionSelected = features.orderBookFeature::selectPrecision,
@@ -117,9 +117,10 @@ fun MarketDetailsScreen(
         )
         MarketDataSection(
             selectedPanel = state.selectedPanel,
+            selectedMarket = state.selectedMarket,
             selectedPrecision = state.selectedPrecision,
             orderBookState = state.orderBookState,
-            tradeState = state.tradeState,
+            recentTradesState = state.recentTradesState,
             onPanelSelected = callbacks.onPanelSelected,
             onPrecisionSelected = callbacks.onPrecisionSelected,
         )

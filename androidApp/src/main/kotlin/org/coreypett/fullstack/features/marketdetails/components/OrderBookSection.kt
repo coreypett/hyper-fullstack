@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,16 +47,16 @@ fun OrderBookSection(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         OrderBookHeader()
+        SpreadRow(spreadText = viewState.spreadText ?: "--")
         repeat(rowCount) { index ->
             PairedOrderBookRow(
                 bid = bids.getOrNull(index),
                 ask = asks.getOrNull(index),
             )
         }
-        SpreadRow(spreadText = viewState.spreadText ?: "--")
     }
 }
 
@@ -64,13 +65,26 @@ private fun OrderBookHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 2.dp, vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OrderBookPriceGap),
     ) {
-        HeaderCell("Bid", TextAlign.Start)
-        HeaderCell("Size", TextAlign.End)
-        HeaderCell("Size", TextAlign.Start)
-        HeaderCell("Ask", TextAlign.End)
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 4.dp, end = 6.dp),
+        ) {
+            HeaderCell("Size", TextAlign.Start)
+            HeaderCell("Price (Bid)", TextAlign.End)
+        }
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 6.dp, end = 4.dp),
+        ) {
+            HeaderCell("Price (Ask)", TextAlign.Start)
+            HeaderCell("Size", TextAlign.End)
+        }
     }
 }
 
@@ -98,32 +112,50 @@ private fun PairedOrderBookRow(
             .fillMaxWidth()
             .height(30.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(OrderBookPriceGap),
     ) {
-        OrderBookSideCell(
+        BidColumns(
             level = bid,
-            side = OrderBookSide.Bid,
             modifier = Modifier.weight(1f),
         )
-        OrderBookSideCell(
+        AskColumns(
             level = ask,
-            side = OrderBookSide.Ask,
             modifier = Modifier.weight(1f),
         )
     }
 }
 
 @Composable
-private fun OrderBookSideCell(
+private fun BidColumns(
+    level: OrderBookRowDisplay?,
+    modifier: Modifier = Modifier,
+) {
+    OrderBookSideColumns(
+        level = level,
+        side = OrderBookSide.Bid,
+        modifier = modifier.padding(start = 4.dp, end = 6.dp),
+    )
+}
+
+@Composable
+private fun AskColumns(
+    level: OrderBookRowDisplay?,
+    modifier: Modifier = Modifier,
+) {
+    OrderBookSideColumns(
+        level = level,
+        side = OrderBookSide.Ask,
+        modifier = modifier.padding(start = 6.dp, end = 4.dp),
+    )
+}
+
+@Composable
+private fun OrderBookSideColumns(
     level: OrderBookRowDisplay?,
     side: OrderBookSide,
     modifier: Modifier = Modifier,
 ) {
-    val sideColor = if (side == OrderBookSide.Bid) {
-        MR.colors.bid.toComposeColor()
-    } else {
-        MR.colors.ask.toComposeColor()
-    }
+    val sideColor = if (side == OrderBookSide.Bid) MR.colors.bid.toComposeColor() else MR.colors.ask.toComposeColor()
     val flashColor = when (level?.change) {
         LevelChange.Up -> MR.colors.up_flash.toComposeColor()
         LevelChange.Down -> MR.colors.down_flash.toComposeColor()
@@ -133,54 +165,30 @@ private fun OrderBookSideCell(
     }
     val animatedFlash by animateColorAsState(flashColor, label = "order-book-flash")
 
-    BoxWithConstraints(
+    Row(
         modifier = modifier
             .fillMaxHeight()
             .background(animatedFlash),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (level != null) {
-            Box(
-                modifier = Modifier
-                    .align(if (side == OrderBookSide.Bid) Alignment.CenterStart else Alignment.CenterEnd)
-                    .width(maxWidth * level.depthFraction.coerceIn(0f, 1f))
-                    .fillMaxHeight()
-                    .background(sideColor.copy(alpha = 0.13f)),
+        if (side == OrderBookSide.Bid) {
+            SizeText(level = level, textAlign = TextAlign.Start)
+            PriceDepthText(
+                level = level,
+                side = side,
+                color = sideColor,
+                textAlign = TextAlign.End,
             )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-                .padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            if (side == OrderBookSide.Bid) {
-                PriceText(level = level, color = sideColor, textAlign = TextAlign.Start)
-                SizeText(level = level, textAlign = TextAlign.End)
-            } else {
-                SizeText(level = level, textAlign = TextAlign.Start)
-                PriceText(level = level, color = sideColor, textAlign = TextAlign.End)
-            }
+        } else {
+            PriceDepthText(
+                level = level,
+                side = side,
+                color = sideColor,
+                textAlign = TextAlign.Start,
+            )
+            SizeText(level = level, textAlign = TextAlign.End)
         }
     }
-}
-
-@Composable
-private fun RowScope.PriceText(
-    level: OrderBookRowDisplay?,
-    color: Color,
-    textAlign: TextAlign,
-) {
-    Text(
-        text = level?.priceText ?: "--",
-        modifier = Modifier.weight(1f),
-        color = if (level == null) MR.colors.text_tertiary.toComposeColor() else color,
-        fontSize = 12.sp,
-        fontFamily = FontFamily.Monospace,
-        textAlign = textAlign,
-        maxLines = 1,
-    )
 }
 
 @Composable
@@ -200,32 +208,68 @@ private fun RowScope.SizeText(
 }
 
 @Composable
+private fun RowScope.PriceDepthText(
+    level: OrderBookRowDisplay?,
+    side: OrderBookSide,
+    color: Color,
+    textAlign: TextAlign,
+) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight(),
+    ) {
+        if (level != null) {
+            Box(
+                modifier = Modifier
+                    .align(if (side == OrderBookSide.Bid) Alignment.CenterEnd else Alignment.CenterStart)
+                    .width(maxWidth * level.depthFraction.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(color.copy(alpha = 0.11f)),
+            )
+        }
+        Text(
+            text = level?.priceText ?: "",
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            color = if (level == null) MR.colors.text_tertiary.toComposeColor() else color,
+            fontSize = 13.sp,
+            fontFamily = FontFamily.Monospace,
+            textAlign = textAlign,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun SpreadRow(
     spreadText: String,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(34.dp)
-            .background(MR.colors.app_background.toComposeColor())
-            .padding(horizontal = 8.dp),
+            .height(38.dp)
+            .background(MR.colors.app_panel.toComposeColor())
+            .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
     ) {
         Text(
             text = "Spread",
-            modifier = Modifier.weight(1f),
             color = MR.colors.text_tertiary.toComposeColor(),
             fontSize = 12.sp,
         )
+        Spacer(Modifier.width(8.dp))
         Text(
             text = spreadText,
-            modifier = Modifier.weight(1f),
             color = MR.colors.brand_orange.toComposeColor(),
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.End,
             maxLines = 1,
         )
     }
 }
+
+private val OrderBookPriceGap = 8.dp

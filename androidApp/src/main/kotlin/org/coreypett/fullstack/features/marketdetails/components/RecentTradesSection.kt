@@ -17,17 +17,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.coreypett.fullstack.market.MR
-import org.coreypett.fullstack.market.trade.model.TradeSide
-import org.coreypett.fullstack.market.trade.presentation.TradeRowDisplay
-import org.coreypett.fullstack.market.trade.presentation.TradeViewState
+import org.coreypett.fullstack.market.model.MarketSymbol
+import org.coreypett.fullstack.market.trade.model.RecentTradesSide
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesRowDisplay
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
 import org.coreypett.fullstack.support.toComposeColor
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun TradesSection(
-    viewState: TradeViewState,
+fun RecentTradesSection(
+    market: MarketSymbol,
+    viewState: RecentTradesViewState,
 ) {
     if (!viewState.hasTrades) {
         EmptyState(message = viewState.centerMessage ?: "Loading trades")
@@ -36,26 +38,28 @@ fun TradesSection(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        TradesHeader()
-        viewState.trades.take(14).forEach { trade ->
-            TradeRow(trade = trade)
+        RecentTradesHeader(market = market)
+        viewState.recentTrades.take(18).forEach { recentTrade ->
+            RecentTradesRow(recentTrade = recentTrade)
         }
     }
 }
 
 @Composable
-private fun TradesHeader() {
+private fun RecentTradesHeader(
+    market: MarketSymbol,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(horizontal = 4.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        HeaderCell("Side", TextAlign.Start)
-        HeaderCell("Price", TextAlign.End)
-        HeaderCell("Size", TextAlign.End)
+        HeaderCell("Price(USD)", TextAlign.Start)
+        HeaderCell("Quantity(${market.displayName})", TextAlign.Center)
         HeaderCell("Time", TextAlign.End)
     }
 }
@@ -75,13 +79,13 @@ private fun RowScope.HeaderCell(
 }
 
 @Composable
-private fun TradeRow(
-    trade: TradeRowDisplay,
+private fun RecentTradesRow(
+    recentTrade: RecentTradesRowDisplay,
 ) {
-    val sideColor = when (trade.side) {
-        TradeSide.Buy -> MR.colors.bid.toComposeColor()
-        TradeSide.Sell -> MR.colors.ask.toComposeColor()
-        TradeSide.Unknown -> MR.colors.text_secondary.toComposeColor()
+    val sideColor = when (recentTrade.side) {
+        RecentTradesSide.Buy -> MR.colors.bid.toComposeColor()
+        RecentTradesSide.Sell -> MR.colors.ask.toComposeColor()
+        RecentTradesSide.Unknown -> MR.colors.text_secondary.toComposeColor()
     }
     Row(
         modifier = Modifier
@@ -90,38 +94,31 @@ private fun TradeRow(
             .background(MR.colors.app_background.toComposeColor())
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = trade.sideText,
+            text = recentTrade.priceText,
             modifier = Modifier.weight(1f),
             color = sideColor,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontFamily = FontFamily.Monospace,
+            textAlign = TextAlign.Start,
             maxLines = 1,
         )
         Text(
-            text = trade.priceText,
-            modifier = Modifier.weight(1f),
-            color = sideColor,
-            fontSize = 12.sp,
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.End,
-            maxLines = 1,
-        )
-        Text(
-            text = trade.sizeText,
+            text = recentTrade.sizeText,
             modifier = Modifier.weight(1f),
             color = MR.colors.text_primary.toComposeColor(),
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.End,
+            textAlign = TextAlign.Center,
             maxLines = 1,
         )
         Text(
-            text = trade.timeMillis.toTradeTime(),
+            text = recentTrade.timeMillis.toTradeTime(),
             modifier = Modifier.weight(1f),
             color = MR.colors.text_secondary.toComposeColor(),
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontFamily = FontFamily.Monospace,
             textAlign = TextAlign.End,
             maxLines = 1,

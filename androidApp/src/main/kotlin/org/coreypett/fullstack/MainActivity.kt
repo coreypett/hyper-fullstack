@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             orderBookFeature = SharedDependencyGraph.orderBookFeature(),
             candleChartFeature = SharedDependencyGraph.candleChartFeature(),
             marketSummaryFeature = SharedDependencyGraph.marketSummaryFeature(),
-            tradeFeature = SharedDependencyGraph.tradeFeature(),
+            recentTradesFeature = SharedDependencyGraph.recentTradesFeature(),
         )
         setContent {
             App(features = features)

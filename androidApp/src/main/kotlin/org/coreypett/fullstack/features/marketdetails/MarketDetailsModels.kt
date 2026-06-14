@@ -6,8 +6,8 @@ import org.coreypett.fullstack.market.candle.presentation.CandleChartState
 import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.market.summary.model.MarketSummaryViewState
 import org.coreypett.fullstack.market.summary.presentation.MarketSummaryFeature
-import org.coreypett.fullstack.market.trade.presentation.TradeFeature
-import org.coreypett.fullstack.market.trade.presentation.TradeViewState
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesFeature
+import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
 import org.coreypett.fullstack.orderbook.model.PricePrecision
 import org.coreypett.fullstack.orderbook.presentation.OrderBookFeature
 import org.coreypett.fullstack.orderbook.presentation.OrderBookViewState
@@ -16,7 +16,7 @@ data class MarketDetailsFeatures(
     val orderBookFeature: OrderBookFeature,
     val candleChartFeature: CandleChartFeature,
     val marketSummaryFeature: MarketSummaryFeature,
-    val tradeFeature: TradeFeature,
+    val recentTradesFeature: RecentTradesFeature,
 )
 
 data class MarketDetailsUiState(
@@ -27,7 +27,7 @@ data class MarketDetailsUiState(
     val summaryState: MarketSummaryViewState,
     val candleState: CandleChartState,
     val orderBookState: OrderBookViewState,
-    val tradeState: TradeViewState,
+    val recentTradesState: RecentTradesViewState,
 ) {
     companion object
 }
@@ -50,7 +50,7 @@ data class MarketDetailsCallbacks(
 
 enum class MarketDetailsPanel(val title: String) {
     OrderBook("Order Book"),
-    Trades("Trades"),
+    RecentTrades("Trades"),
 }
 
 val MarketDetailsChartIntervals: List<CandleInterval> = listOf(
