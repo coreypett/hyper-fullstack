@@ -62,6 +62,7 @@ let project = Project(
             ],
             resources: [
                 "iosApp/Assets.xcassets",
+                "iosApp/**/*.storyboard",
                 "iosApp/Preview Content/**",
             ],
             scripts: [
@@ -108,9 +109,10 @@ let project = Project(
                     "INFOPLIST_FILE": "iosApp/Info.plist",
                     "INFOPLIST_KEY_UIApplicationSceneManifest_Generation": "YES",
                     "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
-                    "INFOPLIST_KEY_UILaunchScreen_Generation": "YES",
+                    "INFOPLIST_KEY_UILaunchStoryboardName": "LaunchScreen",
                     "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad": "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
                     "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone": "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
+                    "INFOPLIST_KEY_UIUserInterfaceStyle": "Dark",
                     "LD_RUNPATH_SEARCH_PATHS": setting([
                         "$(inherited)",
                         "@executable_path/Frameworks",
