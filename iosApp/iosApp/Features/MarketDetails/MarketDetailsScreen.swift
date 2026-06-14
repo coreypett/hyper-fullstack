@@ -6,19 +6,28 @@ import UIKit
 @MainActor
 final class MarketDetailsViewModel: ObservableObject {
     @Published private(set) var selection: OrderBookSelection
+    @Published private(set) var chartInterval: CandleInterval
     @Published private(set) var summary: MarketSummaryState
     @Published private(set) var chartBars: [MarketChartBar]
     @Published private(set) var orderBook: OrderBookState
 
     private let orderBookFeature: OrderBookFeature?
+    private let candleChartFeature: CandleChartFeature?
 
-    init(orderBookFeature: OrderBookFeature? = SharedDependencyGraph.shared.orderBookFeature()) {
+    init(
+        orderBookFeature: OrderBookFeature? = SharedDependencyGraph.shared.orderBookFeature(),
+        candleChartFeature: CandleChartFeature? = SharedDependencyGraph.shared.candleChartFeature()
+    ) {
         let initialSelection = orderBookFeature?.selection ?? OrderBookSelection(market: .btc, precision: .five)
+        let initialCandleSelection = candleChartFeature?.selection ?? CandleSelection(market: initialSelection.market, interval: .oneHour)
         let initialOrderBook = orderBookFeature?.currentState
+        let initialCandles = candleChartFeature?.currentState.bars ?? []
         self.orderBookFeature = orderBookFeature
+        self.candleChartFeature = candleChartFeature
         self.selection = initialSelection
+        self.chartInterval = initialCandleSelection.interval
         self.summary = initialOrderBook.map(MarketSummaryState.init) ?? .preview
-        self.chartBars = orderBookFeature == nil ? MarketChartBar.preview : []
+        self.chartBars = candleChartFeature == nil ? MarketChartBar.preview : initialCandles.map(MarketChartBar.init)
         self.orderBook = initialOrderBook.map(OrderBookState.init) ?? .preview
 
         orderBookFeature?.observe { [weak self] state in
@@ -30,15 +39,27 @@ final class MarketDetailsViewModel: ObservableObject {
                 self.orderBook = OrderBookState(shared: state)
             }
         }
+
+        candleChartFeature?.observe { [weak self] state in
+            MainActor.assumeIsolated {
+                self?.chartBars = state.bars.map(MarketChartBar.init)
+                if let selection = self?.candleChartFeature?.selection {
+                    self?.chartInterval = selection.interval
+                }
+            }
+        }
     }
 
     deinit {
         orderBookFeature?.clearObserver()
         orderBookFeature?.close()
+        candleChartFeature?.clearObserver()
+        candleChartFeature?.close()
     }
 
     func selectMarket(_ market: MarketSymbol) {
         orderBookFeature?.selectMarket(market: market)
+        candleChartFeature?.selectMarket(market: market)
         selection = selection.doCopy(market: market, precision: selection.precision)
     }
 
@@ -47,8 +68,13 @@ final class MarketDetailsViewModel: ObservableObject {
         selection = selection.doCopy(market: selection.market, precision: precision)
     }
 
+    func selectChartInterval(_ interval: CandleInterval) {
+        candleChartFeature?.selectInterval(interval: interval)
+        chartInterval = interval
+    }
+
     static var preview: MarketDetailsViewModel {
-        MarketDetailsViewModel(orderBookFeature: nil)
+        MarketDetailsViewModel(orderBookFeature: nil, candleChartFeature: nil)
     }
 }
 
@@ -115,6 +141,28 @@ struct MarketChartBar {
     let high: Double
     let low: Double
     let close: Double
+
+    init(shared: CandleBar) {
+        self.time = .utc(timestamp: Double(shared.openTimeMillis) / 1_000)
+        self.open = shared.open
+        self.high = shared.high
+        self.low = shared.low
+        self.close = shared.close
+    }
+
+    init(
+        time: Time,
+        open: Double,
+        high: Double,
+        low: Double,
+        close: Double
+    ) {
+        self.time = time
+        self.open = open
+        self.high = high
+        self.low = low
+        self.close = close
+    }
 
     static let preview: [MarketChartBar] = [
         MarketChartBar(time: .string("2026-06-01"), open: 68120, high: 68980, low: 67840, close: 68720),
@@ -244,10 +292,9 @@ struct MarketDetailsScreen: View {
                     .padding(.horizontal, 16)
 
                 MarketChartSection(
-                    title: "\(viewModel.selection.market.displayName)-USD",
-                    status: viewModel.orderBook.status,
-                    statusLabel: viewModel.orderBook.statusLabel,
-                    bars: viewModel.chartBars
+                    selectedInterval: viewModel.chartInterval,
+                    bars: viewModel.chartBars,
+                    onSelectInterval: viewModel.selectChartInterval
                 )
 
                 OrderBookSection(
@@ -332,31 +379,53 @@ private struct MarketStatRow: View {
 }
 
 private struct MarketChartSection: View {
-    let title: String
-    let status: OrderBookStatus
-    let statusLabel: String
+    let selectedInterval: CandleInterval
     let bars: [MarketChartBar]
+    let onSelectInterval: (CandleInterval) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .lineLimit(1)
-
-                Spacer()
-
-                Text(statusLabel)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(statusColor(for: status))
-                    .lineLimit(1)
-            }
+            IntervalSelector(
+                selectedInterval: selectedInterval,
+                onSelect: onSelectInterval
+            )
             .padding(.horizontal, 16)
 
             MarketCandlestickChart(bars: bars)
                 .frame(height: 260)
         }
+    }
+}
+
+private struct IntervalSelector: View {
+    let selectedInterval: CandleInterval
+    let onSelect: (CandleInterval) -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("Int.")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(AppColors.textTertiary)
+                .lineLimit(1)
+
+            HStack(spacing: 12) {
+                ForEach(chartIntervals, id: \.self) { interval in
+                    Button {
+                        onSelect(interval)
+                    } label: {
+                        Text(intervalLabel(for: interval))
+                            .font(.system(size: 12, weight: selectedInterval == interval ? .semibold : .medium))
+                            .foregroundStyle(intervalColor(for: interval))
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func intervalColor(for interval: CandleInterval) -> Color {
+        selectedInterval == interval ? AppColors.controlTextSelected : AppColors.controlTextDimmed
     }
 }
 
@@ -613,6 +682,18 @@ private func changeColor(for direction: MarketChangeDirection) -> Color {
     }
 }
 
+private func intervalLabel(for interval: CandleInterval) -> String {
+    interval == .oneDay ? "1D" : interval.displayName
+}
+
+private let chartIntervals: [CandleInterval] = [
+    .oneMinute,
+    .fiveMinutes,
+    .oneHour,
+    .fourHours,
+    .oneDay,
+]
+
 private func sideColor(for side: OrderBookSide) -> Color {
     side == .bid ? AppColors.bid : AppColors.ask
 }
@@ -670,6 +751,8 @@ private enum AppColors {
     static let textPrimary = MR.colors.shared.text_primary.asSwiftUIColor()
     static let textSecondary = MR.colors.shared.text_secondary.asSwiftUIColor()
     static let textTertiary = MR.colors.shared.text_tertiary.asSwiftUIColor()
+    static let controlTextSelected = MR.colors.shared.control_text_selected.asSwiftUIColor()
+    static let controlTextDimmed = MR.colors.shared.control_text_dimmed.asSwiftUIColor()
     static let accent = MR.colors.shared.brand_orange.asSwiftUIColor()
     static let bid = MR.colors.shared.bid.asSwiftUIColor()
     static let ask = MR.colors.shared.ask.asSwiftUIColor()
