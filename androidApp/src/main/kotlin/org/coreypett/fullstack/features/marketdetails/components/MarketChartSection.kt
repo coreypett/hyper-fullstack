@@ -1,6 +1,8 @@
 package org.coreypett.fullstack.features.marketdetails.components
 
+import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -205,6 +210,7 @@ private fun LightweightCandleChart(
     val priceFormat = remember(priceFormatter) {
         PriceFormat.priceFormatCustom(formatter = priceFormatter, minMove = 0.01f)
     }
+    var isChartReady by remember { mutableStateOf(false) }
     val candleData = remember(bars, bidColor, askColor) {
         bars.map { bar ->
             bar.toCandlestickData(
@@ -222,107 +228,133 @@ private fun LightweightCandleChart(
         }
     }
 
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            ChartsView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                )
-                setBackgroundColor(backgroundColor)
-                subscribeOnChartStateChange { chartState ->
-                    if (chartState is ChartsView.State.Ready && holder.candleSeries == null) {
-                        api.applyOptions(
-                            ChartOptions(
-                                layout = LayoutOptions(
-                                    background = SolidColor(backgroundColor),
-                                    textColor = IntColor(textColor),
-                                    fontSize = 11,
-                                ),
-                                localization = LocalizationOptions(
-                                    priceFormatter = priceFormatter,
-                                ),
-                                rightPriceScale = PriceScaleOptions(
-                                    autoScale = true,
-                                    scaleMargins = PriceScaleMargins(top = 0.08f, bottom = 0.28f),
-                                    borderVisible = false,
-                                    alignLabels = true,
-                                ),
-                                grid = GridOptions(
-                                    vertLines = GridLineOptions(
-                                        color = IntColor(gridColor),
-                                        visible = true,
+    Box(modifier = modifier) {
+        AndroidView(
+            modifier = Modifier
+                .matchParentSize()
+                .alpha(if (isChartReady) 1f else 0f),
+            factory = { context ->
+                ChartsView(context).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    )
+                    clearChartBackground()
+                    post { clearChartBackground() }
+                    subscribeOnChartStateChange { chartState ->
+                        clearChartBackground()
+                        if (chartState is ChartsView.State.Ready && holder.candleSeries == null) {
+                            api.applyOptions(
+                                ChartOptions(
+                                    layout = LayoutOptions(
+                                        background = SolidColor(backgroundColor),
+                                        textColor = IntColor(textColor),
+                                        fontSize = 11,
                                     ),
-                                    horzLines = GridLineOptions(
-                                        color = IntColor(gridColor),
-                                        visible = true,
+                                    localization = LocalizationOptions(
+                                        priceFormatter = priceFormatter,
                                     ),
-                                ),
-                                timeScale = TimeScaleOptions(
-                                    borderVisible = false,
-                                    timeVisible = true,
-                                    secondsVisible = false,
-                                    rightOffset = 4f,
-                                    barSpacing = 8f,
-                                    minBarSpacing = 5f,
-                                    shiftVisibleRangeOnNewBar = true,
-                                ),
-                            ),
-                        )
-                        api.addCandlestickSeries(
-                            CandlestickSeriesOptions(
-                                upColor = IntColor(bidColor),
-                                downColor = IntColor(askColor),
-                                borderVisible = false,
-                                borderUpColor = IntColor(bidColor),
-                                borderDownColor = IntColor(askColor),
-                                wickUpColor = IntColor(bidColor),
-                                wickDownColor = IntColor(askColor),
-                                priceFormat = priceFormat,
-                            ),
-                        ) { series ->
-                            holder.candleSeries = series
-                            series.setData(holder.pendingCandleData.ifEmpty { candleData })
-                            api.timeScale.scrollToRealTime()
-                        }
-                        api.addHistogramSeries(
-                            HistogramSeriesOptions(
-                                lastValueVisible = false,
-                                priceLineVisible = false,
-                                priceScaleId = PriceScaleId(VolumePriceScaleId),
-                                priceFormat = PriceFormat.priceFormatBuiltIn(
-                                    type = PriceFormat.Type.VOLUME,
-                                    precision = 0,
-                                    minMove = 1f,
-                                ),
-                            ),
-                        ) { volumeSeries ->
-                            holder.volumeSeries = volumeSeries
-                            volumeSeries.priceScale().applyOptions(
-                                PriceScaleOptions(
-                                    scaleMargins = PriceScaleMargins(top = 0.78f, bottom = 0f),
-                                    borderVisible = false,
-                                    visible = false,
+                                    rightPriceScale = PriceScaleOptions(
+                                        autoScale = true,
+                                        scaleMargins = PriceScaleMargins(top = 0.08f, bottom = 0.28f),
+                                        borderVisible = false,
+                                        alignLabels = true,
+                                    ),
+                                    grid = GridOptions(
+                                        vertLines = GridLineOptions(
+                                            color = IntColor(gridColor),
+                                            visible = true,
+                                        ),
+                                        horzLines = GridLineOptions(
+                                            color = IntColor(gridColor),
+                                            visible = true,
+                                        ),
+                                    ),
+                                    timeScale = TimeScaleOptions(
+                                        borderVisible = false,
+                                        timeVisible = true,
+                                        secondsVisible = false,
+                                        rightOffset = 4f,
+                                        barSpacing = 8f,
+                                        minBarSpacing = 5f,
+                                        shiftVisibleRangeOnNewBar = true,
+                                    ),
                                 ),
                             )
-                            volumeSeries.setData(holder.pendingVolumeData.ifEmpty { volumeData })
+                            api.addCandlestickSeries(
+                                CandlestickSeriesOptions(
+                                    upColor = IntColor(bidColor),
+                                    downColor = IntColor(askColor),
+                                    borderVisible = false,
+                                    borderUpColor = IntColor(bidColor),
+                                    borderDownColor = IntColor(askColor),
+                                    wickUpColor = IntColor(bidColor),
+                                    wickDownColor = IntColor(askColor),
+                                    priceFormat = priceFormat,
+                                ),
+                            ) { series ->
+                                holder.candleSeries = series
+                                series.setData(holder.pendingCandleData.ifEmpty { candleData })
+                                api.timeScale.scrollToRealTime()
+                            }
+                            api.addHistogramSeries(
+                                HistogramSeriesOptions(
+                                    lastValueVisible = false,
+                                    priceLineVisible = false,
+                                    priceScaleId = PriceScaleId(VolumePriceScaleId),
+                                    priceFormat = PriceFormat.priceFormatBuiltIn(
+                                        type = PriceFormat.Type.VOLUME,
+                                        precision = 0,
+                                        minMove = 1f,
+                                    ),
+                                ),
+                            ) { volumeSeries ->
+                                holder.volumeSeries = volumeSeries
+                                volumeSeries.priceScale().applyOptions(
+                                    PriceScaleOptions(
+                                        scaleMargins = PriceScaleMargins(top = 0.78f, bottom = 0f),
+                                        borderVisible = false,
+                                        visible = false,
+                                    ),
+                                )
+                                volumeSeries.setData(holder.pendingVolumeData.ifEmpty { volumeData })
+                                isChartReady = true
+                            }
                         }
                     }
                 }
-            }
-        },
-        update = { chartView ->
-            holder.pendingCandleData = candleData
-            holder.pendingVolumeData = volumeData
-            val candleSeries = holder.candleSeries
-            if (candleSeries != null && candleData.isNotEmpty()) {
-                candleSeries.setData(candleData)
-                holder.volumeSeries?.setData(volumeData)
-                chartView.api.timeScale.scrollToRealTime()
-            }
-        },
-    )
+            },
+            update = { chartView ->
+                chartView.clearChartBackground()
+                holder.pendingCandleData = candleData
+                holder.pendingVolumeData = volumeData
+                val candleSeries = holder.candleSeries
+                if (candleSeries != null && candleData.isNotEmpty()) {
+                    candleSeries.setData(candleData)
+                    holder.volumeSeries?.setData(volumeData)
+                    chartView.api.timeScale.scrollToRealTime()
+                    isChartReady = true
+                }
+            },
+        )
+
+        if (!isChartReady) {
+            ChartSkeleton(modifier = Modifier.matchParentSize())
+        }
+    }
+}
+
+private fun View.clearChartBackground() {
+    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+    if (this is WebView) {
+        isHorizontalScrollBarEnabled = false
+        isVerticalScrollBarEnabled = false
+    }
+    if (this is ViewGroup) {
+        repeat(childCount) { index ->
+            getChildAt(index).clearChartBackground()
+        }
+    }
 }
 
 private class CandleChartHolder {

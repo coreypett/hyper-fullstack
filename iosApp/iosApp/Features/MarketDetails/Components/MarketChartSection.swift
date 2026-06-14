@@ -3,6 +3,7 @@ import Pow
 @preconcurrency import SharedLogic
 import SwiftUI
 import UIKit
+import WebKit
 
 struct MarketChartBar {
     let time: Time
@@ -177,9 +178,14 @@ private struct MarketCandlestickChart: UIViewRepresentable {
 
     func makeUIView(context: Context) -> LightweightCharts {
         let chart = LightweightCharts(options: chartOptions)
-        chart.isOpaque = false
-        chart.backgroundColor = .clear
+        chart.alpha = 0
+        chart.prepareTransparentChartBackground()
         chart.clearWebViewBackground()
+        DispatchQueue.main.async {
+            chart.prepareTransparentChartBackground()
+            chart.clearWebViewBackground()
+            chart.alpha = 1
+        }
 
         let series = chart.addCandlestickSeries(options: seriesOptions)
         context.coordinator.series = series
@@ -194,8 +200,7 @@ private struct MarketCandlestickChart: UIViewRepresentable {
     }
 
     func updateUIView(_ chart: LightweightCharts, context: Context) {
-        chart.isOpaque = false
-        chart.backgroundColor = .clear
+        chart.prepareTransparentChartBackground()
         chart.clearWebViewBackground()
         context.coordinator.series?.setData(data: bars.map(\.candlestickData))
         context.coordinator.volumeSeries?.setData(data: bars.map(\.volumeData))
@@ -217,6 +222,22 @@ private struct MarketCandlestickChart: UIViewRepresentable {
 
     private var volumeSeriesOptions: HistogramSeriesOptions {
         marketChartVolumeSeriesOptions()
+    }
+}
+
+private extension UIView {
+    func prepareTransparentChartBackground() {
+        isOpaque = false
+        backgroundColor = .clear
+
+        if let webView = self as? WKWebView {
+            webView.isOpaque = false
+            webView.backgroundColor = .clear
+            webView.scrollView.isOpaque = false
+            webView.scrollView.backgroundColor = .clear
+        }
+
+        subviews.forEach { $0.prepareTransparentChartBackground() }
     }
 }
 
