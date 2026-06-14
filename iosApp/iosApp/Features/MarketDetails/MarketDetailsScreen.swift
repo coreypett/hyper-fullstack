@@ -3,13 +3,13 @@ import SwiftUI
 
 enum MarketDataPanel: CaseIterable {
     case orderBook
-    case trades
+    case recentTrades
 
     var title: String {
         switch self {
         case .orderBook:
             return "Order Book"
-        case .trades:
+        case .recentTrades:
             return "Trades"
         }
     }
@@ -51,7 +51,7 @@ struct MarketDetailsScreen: View {
                     selectedPanel: selectedMarketDataPanel,
                     selection: viewModel.selection,
                     orderBook: viewModel.orderBook,
-                    trades: viewModel.trades,
+                    recentTrades: viewModel.recentTrades,
                     onSelectPanel: { selectedMarketDataPanel = $0 },
                     onSelectPrecision: viewModel.selectPrecision
                 )

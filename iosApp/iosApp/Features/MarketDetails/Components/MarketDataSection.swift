@@ -6,7 +6,7 @@ struct MarketDataSection: View {
     let selectedPanel: MarketDataPanel
     let selection: OrderBookSelection
     let orderBook: OrderBookState
-    let trades: TradeState
+    let recentTrades: RecentTradesState
     let onSelectPanel: (MarketDataPanel) -> Void
     let onSelectPrecision: (PricePrecision) -> Void
 
@@ -33,8 +33,8 @@ struct MarketDataSection: View {
                 switch selectedPanel {
                 case .orderBook:
                     OrderBookSection(orderBook: orderBook)
-                case .trades:
-                    TradesSection(market: selection.market, trades: trades)
+                case .recentTrades:
+                    RecentTradesSection(market: selection.market, recentTrades: recentTrades)
                 }
             }
             .animation(.easeInOut(duration: 0.18), value: selectedPanel)

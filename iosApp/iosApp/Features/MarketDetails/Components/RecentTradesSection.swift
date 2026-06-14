@@ -2,30 +2,30 @@ import Pow
 @preconcurrency import SharedLogic
 import SwiftUI
 
-struct TradeState {
-    let status: TradeStatus
+struct RecentTradesState {
+    let status: RecentTradesStatus
     let statusLabel: String
     let centerMessage: String?
-    let rows: [TradeRow]
+    let rows: [RecentTradesRow]
     let isLoading: Bool
 
     var hasRows: Bool {
         !rows.isEmpty
     }
 
-    static let preview = TradeState(
+    static let preview = RecentTradesState(
         status: .live,
         statusLabel: "Live",
         centerMessage: nil,
         rows: [
-            TradeRow(side: .buy, sideText: "Buy", priceText: "$69,125.50", sizeText: "0.42", timeMillis: 1_710_000_000_000, tradeId: 42),
-            TradeRow(side: .sell, sideText: "Sell", priceText: "$69,124", sizeText: "0.25", timeMillis: 1_710_000_000_100, tradeId: 43),
-            TradeRow(side: .buy, sideText: "Buy", priceText: "$69,126", sizeText: "0.18", timeMillis: 1_710_000_000_200, tradeId: 44),
+            RecentTradesRow(side: .buy, sideText: "Buy", priceText: "$69,125.50", sizeText: "0.42", timeMillis: 1_710_000_000_000, tradeId: 42),
+            RecentTradesRow(side: .sell, sideText: "Sell", priceText: "$69,124", sizeText: "0.25", timeMillis: 1_710_000_000_100, tradeId: 43),
+            RecentTradesRow(side: .buy, sideText: "Buy", priceText: "$69,126", sizeText: "0.18", timeMillis: 1_710_000_000_200, tradeId: 44),
         ],
         isLoading: false
     )
 
-    static let loading = TradeState(
+    static let loading = RecentTradesState(
         status: .connecting,
         statusLabel: "Connecting",
         centerMessage: nil,
@@ -33,19 +33,19 @@ struct TradeState {
         isLoading: true
     )
 
-    init(shared: TradeViewState) {
+    init(shared: RecentTradesViewState) {
         self.status = shared.status
         self.statusLabel = shared.statusLabel
         self.centerMessage = shared.centerMessage
-        self.rows = shared.trades.map(TradeRow.init)
+        self.rows = shared.recentTrades.map(RecentTradesRow.init)
         self.isLoading = shared.status == .connecting && !shared.hasTrades
     }
 
     init(
-        status: TradeStatus,
+        status: RecentTradesStatus,
         statusLabel: String,
         centerMessage: String?,
-        rows: [TradeRow],
+        rows: [RecentTradesRow],
         isLoading: Bool
     ) {
         self.status = status
@@ -56,8 +56,8 @@ struct TradeState {
     }
 }
 
-struct TradeRow: Hashable {
-    let side: TradeSide
+struct RecentTradesRow: Hashable {
+    let side: RecentTradesSide
     let sideText: String
     let priceText: String
     let sizeText: String
@@ -68,7 +68,7 @@ struct TradeRow: Hashable {
         Self.timeFormatter.string(from: Date(timeIntervalSince1970: Double(timeMillis) / 1_000))
     }
 
-    init(shared: TradeRowDisplay) {
+    init(shared: RecentTradesRowDisplay) {
         self.side = shared.side
         self.sideText = shared.sideText
         self.priceText = shared.priceText
@@ -78,7 +78,7 @@ struct TradeRow: Hashable {
     }
 
     init(
-        side: TradeSide,
+        side: RecentTradesSide,
         sideText: String,
         priceText: String,
         sizeText: String,
@@ -100,43 +100,43 @@ struct TradeRow: Hashable {
     }()
 }
 
-struct TradesSection: View {
+struct RecentTradesSection: View {
     let market: MarketSymbol
-    let trades: TradeState
+    let recentTrades: RecentTradesState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if trades.isLoading {
-                TradesSkeleton(market: market)
+            if recentTrades.isLoading {
+                RecentTradesSkeleton(market: market)
                     .transition(.movingParts.blur.combined(with: .opacity))
-            } else if trades.hasRows {
-                TradesList(market: market, rows: trades.rows)
+            } else if recentTrades.hasRows {
+                RecentTradesList(market: market, rows: recentTrades.rows)
                     .transition(.movingParts.blur.combined(with: .opacity))
             } else {
-                CenterMessage(text: trades.centerMessage ?? "Connecting")
+                CenterMessage(text: recentTrades.centerMessage ?? "Connecting")
                     .frame(height: 180)
                     .transition(.movingParts.blur.combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.22), value: trades.isLoading)
+        .animation(.easeInOut(duration: 0.22), value: recentTrades.isLoading)
     }
 }
 
-private struct TradesSkeleton: View {
+private struct RecentTradesSkeleton: View {
     let market: MarketSymbol
 
     var body: some View {
         VStack(spacing: 0) {
-            TradeHeaderRow(market: market)
+            RecentTradesHeaderRow(market: market)
 
             ForEach(0..<7, id: \.self) { index in
-                SkeletonTradeRow(seed: index)
+                RecentTradesSkeletonRow(seed: index)
             }
         }
     }
 }
 
-private struct SkeletonTradeRow: View {
+private struct RecentTradesSkeletonRow: View {
     let seed: Int
 
     var body: some View {
@@ -163,36 +163,36 @@ private struct SkeletonTradeRow: View {
     }
 }
 
-private struct TradesList: View {
+private struct RecentTradesList: View {
     let market: MarketSymbol
-    let rows: [TradeRow]
+    let rows: [RecentTradesRow]
 
     var body: some View {
         LazyVStack(spacing: 0) {
-            TradeHeaderRow(market: market)
+            RecentTradesHeaderRow(market: market)
 
             ForEach(Array(rows.prefix(18).enumerated()), id: \.element) { _, row in
-                TradeListRow(row: row)
+                RecentTradesListRow(row: row)
             }
         }
     }
 }
 
-private struct TradeHeaderRow: View {
+private struct RecentTradesHeaderRow: View {
     let market: MarketSymbol
 
     var body: some View {
         HStack(spacing: 10) {
-            TradeHeaderCell(text: "Price(USD)", alignment: .leading)
-            TradeHeaderCell(text: "Quantity(\(market.displayName))", alignment: .center)
-            TradeHeaderCell(text: "Time", alignment: .trailing)
+            RecentTradesHeaderCell(text: "Price(USD)", alignment: .leading)
+            RecentTradesHeaderCell(text: "Quantity(\(market.displayName))", alignment: .center)
+            RecentTradesHeaderCell(text: "Time", alignment: .trailing)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 6)
     }
 }
 
-private struct TradeHeaderCell: View {
+private struct RecentTradesHeaderCell: View {
     let text: String
     let alignment: Alignment
     var width: CGFloat?
@@ -208,13 +208,13 @@ private struct TradeHeaderCell: View {
     }
 }
 
-private struct TradeListRow: View {
-    let row: TradeRow
+private struct RecentTradesListRow: View {
+    let row: RecentTradesRow
 
     var body: some View {
         HStack(spacing: 10) {
             Text(row.priceText)
-                .foregroundStyle(tradeColor(for: row.side))
+                .foregroundStyle(recentTradesColor(for: row.side))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(row.sizeText)
@@ -233,7 +233,7 @@ private struct TradeListRow: View {
     }
 }
 
-private func tradeColor(for side: TradeSide) -> Color {
+private func recentTradesColor(for side: RecentTradesSide) -> Color {
     switch side {
     case .buy:
         return MR.colors.shared.bid.swiftUIColor

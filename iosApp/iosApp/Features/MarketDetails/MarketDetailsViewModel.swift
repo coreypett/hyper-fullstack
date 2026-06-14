@@ -9,12 +9,12 @@ final class MarketDetailsViewModel: ObservableObject {
     @Published private(set) var chartBars: [MarketChartBar]
     @Published private(set) var isChartLoading: Bool
     @Published private(set) var orderBook: OrderBookState
-    @Published private(set) var trades: TradeState
+    @Published private(set) var recentTrades: RecentTradesState
 
     private let orderBookFeature: OrderBookFeature?
     private let candleChartFeature: CandleChartFeature?
     private let marketSummaryFeature: MarketSummaryFeature?
-    private let tradeFeature: TradeFeature?
+    private let recentTradesFeature: RecentTradesFeature?
     private var latestOrderBookViewState: OrderBookViewState?
     private var latestMarketSummaryViewState: MarketSummaryViewState?
     private var latestCandlePriceText: String?
@@ -23,18 +23,18 @@ final class MarketDetailsViewModel: ObservableObject {
         orderBookFeature: OrderBookFeature? = SharedDependencyGraph.shared.orderBookFeature(),
         candleChartFeature: CandleChartFeature? = SharedDependencyGraph.shared.candleChartFeature(),
         marketSummaryFeature: MarketSummaryFeature? = SharedDependencyGraph.shared.marketSummaryFeature(),
-        tradeFeature: TradeFeature? = SharedDependencyGraph.shared.tradeFeature()
+        recentTradesFeature: RecentTradesFeature? = SharedDependencyGraph.shared.recentTradesFeature()
     ) {
         let initialSelection = orderBookFeature?.selection ?? OrderBookSelection(market: .btc, precision: .five)
         let initialCandleSelection = candleChartFeature?.selection ?? CandleSelection(market: initialSelection.market, interval: .oneHour)
         let initialOrderBook = orderBookFeature?.currentState
         let initialCandles = candleChartFeature?.currentState.bars ?? []
         let initialMarketSummary = marketSummaryFeature?.currentState
-        let initialTrades = tradeFeature?.currentState
+        let initialTrades = recentTradesFeature?.currentState
         self.orderBookFeature = orderBookFeature
         self.candleChartFeature = candleChartFeature
         self.marketSummaryFeature = marketSummaryFeature
-        self.tradeFeature = tradeFeature
+        self.recentTradesFeature = recentTradesFeature
         self.latestOrderBookViewState = initialOrderBook
         self.latestMarketSummaryViewState = initialMarketSummary
         self.latestCandlePriceText = initialCandles.last?.closeText
@@ -50,9 +50,9 @@ final class MarketDetailsViewModel: ObservableObject {
         self.chartBars = candleChartFeature == nil ? MarketChartBar.preview : initialCandles.map(MarketChartBar.init)
         self.isChartLoading = candleChartFeature != nil && initialCandles.isEmpty
         self.orderBook = orderBookFeature == nil ? .preview : initialOrderBook.map(OrderBookState.init) ?? .loading
-        self.trades = tradeFeature == nil ? .preview : initialTrades.map(TradeState.init) ?? .loading
+        self.recentTrades = recentTradesFeature == nil ? .preview : initialTrades.map(RecentTradesState.init) ?? .loading
         marketSummaryFeature?.selectMarket(market: initialSelection.market)
-        tradeFeature?.selectMarket(market: initialSelection.market)
+        recentTradesFeature?.selectMarket(market: initialSelection.market)
 
         orderBookFeature?.observe { [weak self] state in
             MainActor.assumeIsolated {
@@ -98,10 +98,10 @@ final class MarketDetailsViewModel: ObservableObject {
             }
         }
 
-        tradeFeature?.observe { [weak self] state in
+        recentTradesFeature?.observe { [weak self] state in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                self.trades = TradeState(shared: state)
+                self.recentTrades = RecentTradesState(shared: state)
             }
         }
     }
@@ -113,15 +113,15 @@ final class MarketDetailsViewModel: ObservableObject {
         candleChartFeature?.close()
         marketSummaryFeature?.clearObserver()
         marketSummaryFeature?.close()
-        tradeFeature?.clearObserver()
-        tradeFeature?.close()
+        recentTradesFeature?.clearObserver()
+        recentTradesFeature?.close()
     }
 
     func selectMarket(_ market: MarketSymbol) {
         orderBookFeature?.selectMarket(market: market)
         candleChartFeature?.selectMarket(market: market)
         marketSummaryFeature?.selectMarket(market: market)
-        tradeFeature?.selectMarket(market: market)
+        recentTradesFeature?.selectMarket(market: market)
         latestOrderBookViewState = nil
         latestMarketSummaryViewState = nil
         latestCandlePriceText = nil
@@ -135,7 +135,7 @@ final class MarketDetailsViewModel: ObservableObject {
         chartBars = candleChartFeature == nil ? MarketChartBar.preview : []
         isChartLoading = candleChartFeature != nil
         orderBook = orderBookFeature == nil ? .preview : .loading
-        trades = tradeFeature == nil ? .preview : .loading
+        recentTrades = recentTradesFeature == nil ? .preview : .loading
         selection = selection.doCopy(market: market, precision: selection.precision)
     }
 
@@ -150,6 +150,6 @@ final class MarketDetailsViewModel: ObservableObject {
     }
 
     static var preview: MarketDetailsViewModel {
-        MarketDetailsViewModel(orderBookFeature: nil, candleChartFeature: nil, marketSummaryFeature: nil, tradeFeature: nil)
+        MarketDetailsViewModel(orderBookFeature: nil, candleChartFeature: nil, marketSummaryFeature: nil, recentTradesFeature: nil)
     }
 }
