@@ -112,7 +112,7 @@ private struct IntervalSelector: View {
         HStack(spacing: 12) {
             Text("Int.")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
+                .foregroundStyle(MR.colors.shared.text_primary.swiftUIColor)
                 .lineLimit(1)
 
             HStack(spacing: 12) {
