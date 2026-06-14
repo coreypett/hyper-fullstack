@@ -16,6 +16,7 @@ final class MarketDetailsViewModel: ObservableObject {
     private let marketSummaryFeature: MarketSummaryFeature?
     private var latestOrderBookViewState: OrderBookViewState?
     private var latestMarketSummaryViewState: MarketSummaryViewState?
+    private var latestCandlePriceText: String?
 
     init(
         orderBookFeature: OrderBookFeature? = SharedDependencyGraph.shared.orderBookFeature(),
@@ -32,11 +33,16 @@ final class MarketDetailsViewModel: ObservableObject {
         self.marketSummaryFeature = marketSummaryFeature
         self.latestOrderBookViewState = initialOrderBook
         self.latestMarketSummaryViewState = initialMarketSummary
+        self.latestCandlePriceText = initialCandles.last?.closeText
         self.selection = initialSelection
         self.chartInterval = initialCandleSelection.interval
         self.summary = marketSummaryFeature == nil && orderBookFeature == nil
             ? .preview
-            : MarketSummaryState(marketSummary: initialMarketSummary, orderBook: initialOrderBook)
+            : MarketSummaryState(
+                marketSummary: initialMarketSummary,
+                orderBook: initialOrderBook,
+                livePriceText: latestCandlePriceText
+            )
         self.chartBars = candleChartFeature == nil ? MarketChartBar.preview : initialCandles.map(MarketChartBar.init)
         self.orderBook = initialOrderBook.map(OrderBookState.init) ?? .preview
         marketSummaryFeature?.selectMarket(market: initialSelection.market)
@@ -49,7 +55,8 @@ final class MarketDetailsViewModel: ObservableObject {
                 self.latestOrderBookViewState = state
                 self.summary = MarketSummaryState(
                     marketSummary: self.latestMarketSummaryViewState,
-                    orderBook: state
+                    orderBook: state,
+                    livePriceText: self.latestCandlePriceText
                 )
                 self.orderBook = OrderBookState(shared: state)
             }
@@ -57,9 +64,16 @@ final class MarketDetailsViewModel: ObservableObject {
 
         candleChartFeature?.observe { [weak self] state in
             MainActor.assumeIsolated {
-                self?.chartBars = state.bars.map(MarketChartBar.init)
-                if let selection = self?.candleChartFeature?.selection {
-                    self?.chartInterval = selection.interval
+                guard let self else { return }
+                self.chartBars = state.bars.map(MarketChartBar.init)
+                self.latestCandlePriceText = state.bars.last?.closeText
+                self.summary = MarketSummaryState(
+                    marketSummary: self.latestMarketSummaryViewState,
+                    orderBook: self.latestOrderBookViewState,
+                    livePriceText: self.latestCandlePriceText
+                )
+                if let selection = self.candleChartFeature?.selection {
+                    self.chartInterval = selection.interval
                 }
             }
         }
@@ -70,7 +84,8 @@ final class MarketDetailsViewModel: ObservableObject {
                 self.latestMarketSummaryViewState = state
                 self.summary = MarketSummaryState(
                     marketSummary: state,
-                    orderBook: self.latestOrderBookViewState
+                    orderBook: self.latestOrderBookViewState,
+                    livePriceText: self.latestCandlePriceText
                 )
             }
         }
@@ -89,6 +104,12 @@ final class MarketDetailsViewModel: ObservableObject {
         orderBookFeature?.selectMarket(market: market)
         candleChartFeature?.selectMarket(market: market)
         marketSummaryFeature?.selectMarket(market: market)
+        latestCandlePriceText = nil
+        summary = MarketSummaryState(
+            marketSummary: latestMarketSummaryViewState,
+            orderBook: latestOrderBookViewState,
+            livePriceText: nil
+        )
         selection = selection.doCopy(market: market, precision: selection.precision)
     }
 
@@ -115,27 +136,36 @@ struct MarketSummaryState {
     let stats: [MarketStat]
 
     static let preview = MarketSummaryState(
-        midPriceText: "69,125.75",
-        priceChangeText: "+1,228.50",
+        midPriceText: "$69,125.75",
+        priceChangeText: "+$1,228.50",
         priceChangePercentText: "+1.81%",
         changeDirection: .up,
         stats: [
             MarketStat(label: "24h Vol", value: "$4.82B"),
-            MarketStat(label: "24h High", value: "70,184.00"),
-            MarketStat(label: "24h Low", value: "67,914.50"),
+            MarketStat(label: "24h High", value: "$70,184"),
+            MarketStat(label: "24h Low", value: "$67,914.50"),
+            MarketStat(label: "Open Int.", value: "28.42K"),
         ]
     )
 
-    init(marketSummary: MarketSummaryViewState?, orderBook: OrderBookViewState?) {
-        self.midPriceText = marketSummary?.midPriceText ?? orderBook?.midPriceText ?? "--"
+    init(
+        marketSummary: MarketSummaryViewState?,
+        orderBook: OrderBookViewState?,
+        livePriceText: String? = nil
+    ) {
+        self.midPriceText = livePriceText ?? marketSummary?.midPriceText ?? orderBook?.midPriceText ?? "--"
         self.priceChangeText = marketSummary?.priceChangeText ?? "--"
         self.priceChangePercentText = marketSummary?.priceChangePercentText ?? "--"
         self.changeDirection = MarketSummaryState.changeDirection(from: marketSummary?.changeDirection)
-        self.stats = [
+        var stats = [
             MarketStat(label: "24h Vol", value: marketSummary?.volume24hText ?? "--"),
             MarketStat(label: "24h High", value: marketSummary?.high24hText ?? "--"),
             MarketStat(label: "24h Low", value: marketSummary?.low24hText ?? "--"),
         ]
+        if let openInterestText = marketSummary?.openInterestText {
+            stats.append(MarketStat(label: "Open Int.", value: openInterestText))
+        }
+        self.stats = stats
     }
 
     init(
@@ -238,16 +268,16 @@ struct OrderBookState {
         status: .live,
         statusLabel: "Live",
         centerMessage: nil,
-        spreadText: "0.50",
+        spreadText: "$0.50",
         asks: [
-            OrderBookRow(side: .ask, priceText: "69,128.00", sizeText: "0.75", orderCountText: "1", depthFraction: 0.38, change: .none),
-            OrderBookRow(side: .ask, priceText: "69,127.50", sizeText: "1.00", orderCountText: "2", depthFraction: 0.5, change: .down),
-            OrderBookRow(side: .ask, priceText: "69,126.00", sizeText: "2.00", orderCountText: "4", depthFraction: 1.0, change: .none),
+            OrderBookRow(side: .ask, priceText: "$69,128", sizeText: "0.75", orderCountText: "1", depthFraction: 0.38, change: .none),
+            OrderBookRow(side: .ask, priceText: "$69,127.50", sizeText: "1.00", orderCountText: "2", depthFraction: 0.5, change: .down),
+            OrderBookRow(side: .ask, priceText: "$69,126", sizeText: "2.00", orderCountText: "4", depthFraction: 1.0, change: .none),
         ],
         bids: [
-            OrderBookRow(side: .bid, priceText: "69,125.50", sizeText: "1.25", orderCountText: "3", depthFraction: 1.0, change: .none),
-            OrderBookRow(side: .bid, priceText: "69,124.00", sizeText: "0.50", orderCountText: "1", depthFraction: 0.4, change: .up),
-            OrderBookRow(side: .bid, priceText: "69,123.50", sizeText: "0.25", orderCountText: "2", depthFraction: 0.2, change: .none),
+            OrderBookRow(side: .bid, priceText: "$69,125.50", sizeText: "1.25", orderCountText: "3", depthFraction: 1.0, change: .none),
+            OrderBookRow(side: .bid, priceText: "$69,124", sizeText: "0.50", orderCountText: "1", depthFraction: 0.4, change: .up),
+            OrderBookRow(side: .bid, priceText: "$69,123.50", sizeText: "0.25", orderCountText: "2", depthFraction: 0.2, change: .none),
         ]
     )
 
@@ -411,13 +441,16 @@ private struct MarketSummarySection: View {
     let state: MarketSummaryState
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(state.midPriceText)
                     .font(.system(size: 36, weight: .semibold, design: .rounded))
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.52)
+                    .allowsTightening(true)
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.18), value: state.midPriceText)
 
                 HStack(spacing: 8) {
                     Text(state.priceChangeText)
@@ -429,13 +462,15 @@ private struct MarketSummarySection: View {
                 .minimumScaleFactor(0.82)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 76, alignment: .center)
 
-            VStack(alignment: .trailing, spacing: 7) {
+            VStack(alignment: .trailing, spacing: 4) {
                 ForEach(state.stats, id: \.self) { stat in
                     MarketStatRow(stat: stat)
                 }
             }
             .frame(width: 154, alignment: .trailing)
+            .frame(minHeight: 76, alignment: .center)
         }
         .padding(.vertical, 2)
     }
@@ -447,14 +482,14 @@ private struct MarketStatRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(stat.label)
-                .font(.system(size: 11))
+                .font(.system(size: 10))
                 .foregroundStyle(AppColors.textTertiary)
                 .lineLimit(1)
 
             Spacer(minLength: 8)
 
             Text(stat.value)
-                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -861,6 +896,7 @@ private func marketChartSeriesOptions() -> CandlestickSeriesOptions {
     CandlestickSeriesOptions(
         lastValueVisible: true,
         priceLineVisible: true,
+        priceFormat: marketChartPriceFormat(),
         upColor: AppColors.bid.chartColor,
         downColor: AppColors.ask.chartColor,
         borderVisible: false,
@@ -868,6 +904,44 @@ private func marketChartSeriesOptions() -> CandlestickSeriesOptions {
         wickDownColor: AppColors.ask.chartColor
     )
 }
+
+private func marketChartPriceFormat() -> PriceFormat {
+    .custom(
+        CustomPriceFormat(
+            minMove: 0.01,
+            formatterJavaScript: dollarPriceFormatterJavaScript,
+            tickmarksFormatterJavaScript: dollarTickmarksFormatterJavaScript
+        )
+    )
+}
+
+private let dollarPriceFormatterJavaScript = #"""
+function(price) {
+    var sign = price < 0 ? '-$' : '$';
+    var rounded = Math.round(Math.abs(price) * 100);
+    var whole = String(Math.floor(rounded / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    var cents = rounded % 100;
+    if (cents === 0) {
+        return sign + whole;
+    }
+    return sign + whole + '.' + (cents < 10 ? '0' + cents : String(cents));
+}
+"""#
+
+private let dollarTickmarksFormatterJavaScript = #"""
+function(prices) {
+    return prices.map(function(price) {
+        var sign = price < 0 ? '-$' : '$';
+        var rounded = Math.round(Math.abs(price) * 100);
+        var whole = String(Math.floor(rounded / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        var cents = rounded % 100;
+        if (cents === 0) {
+            return sign + whole;
+        }
+        return sign + whole + '.' + (cents < 10 ? '0' + cents : String(cents));
+    });
+}
+"""#
 
 private enum AppColors {
     static let background = MR.colors.shared.app_background.asSwiftUIColor()

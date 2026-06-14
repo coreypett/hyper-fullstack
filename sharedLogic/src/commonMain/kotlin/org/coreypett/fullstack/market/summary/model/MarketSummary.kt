@@ -10,6 +10,7 @@ data class MarketSummary(
     val volumeUsd24h: Double?,
     val high24h: Double?,
     val low24h: Double?,
+    val openInterest: Double?,
 ) {
     val priceChange: Double? = previousDayPrice?.let { midPrice - it }
     val priceChangePercent: Double? = previousDayPrice
@@ -34,6 +35,7 @@ data class MarketSummaryViewState(
     val volume24hText: String?,
     val high24hText: String?,
     val low24hText: String?,
+    val openInterestText: String?,
 ) {
     companion object {
         val Connecting = MarketSummaryViewState(
@@ -46,6 +48,7 @@ data class MarketSummaryViewState(
             volume24hText = null,
             high24hText = null,
             low24hText = null,
+            openInterestText = null,
         )
 
         fun from(uiState: MarketSummaryUiState): MarketSummaryViewState = when (uiState) {
@@ -96,6 +99,7 @@ private fun MarketSummary.toViewState(
         volume24hText = volumeUsd24h?.let(::formatCompactUsd),
         high24hText = high24h?.let(MarketNumberFormatter::price),
         low24hText = low24h?.let(MarketNumberFormatter::price),
+        openInterestText = openInterest?.let(MarketNumberFormatter::size),
     )
 }
 

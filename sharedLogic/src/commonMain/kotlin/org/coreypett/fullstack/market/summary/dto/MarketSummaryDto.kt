@@ -33,4 +33,7 @@ internal data class MarketAssetContextDto(
     @SerialName("prevDayPx")
     @Serializable(with = HyperliquidDoubleSerializer::class)
     val previousDayPrice: Double? = null,
+    @SerialName("openInterest")
+    @Serializable(with = HyperliquidDoubleSerializer::class)
+    val openInterest: Double? = null,
 )

@@ -38,6 +38,7 @@ internal interface MarketSummaryService {
                 volumeUsd24h = assetContext.dayNotionalVolume,
                 high24h = bars.maxOfOrNull { it.high },
                 low24h = bars.minOfOrNull { it.low },
+                openInterest = assetContext.openInterest,
             )
         }
 
