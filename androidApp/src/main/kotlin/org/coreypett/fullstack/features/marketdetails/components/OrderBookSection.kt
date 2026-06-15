@@ -420,7 +420,7 @@ private fun SpreadRow(
             .background(MR.colors.app_panel.toComposeColor())
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(OrderBookSpreadItemGap, Alignment.CenterHorizontally),
     ) {
         Text(
             text = "Spread",
@@ -451,6 +451,7 @@ private val OrderBookTextCenterGap = 8.dp
 private val OrderBookDepthCenterGap = 0.dp
 private val OrderBookCenterPadding = 0.dp
 private val OrderBookOuterPadding = 4.dp
+private val OrderBookSpreadItemGap = 12.dp
 private const val OrderBookFlashMinChangeFraction = 0.08f
 private const val OrderBookFlashUpTextProgress = 0.88f
 private const val OrderBookFlashDownTextProgress = 0.78f

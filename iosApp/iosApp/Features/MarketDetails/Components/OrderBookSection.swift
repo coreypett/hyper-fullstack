@@ -444,7 +444,7 @@ private struct SpreadRow: View {
     let spreadPercentText: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: orderBookSpreadItemGap) {
             Text("Spread")
                 .font(.system(size: 12))
                 .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
@@ -470,6 +470,7 @@ private let orderBookTextCenterGap: CGFloat = 8
 private let orderBookDepthCenterGap: CGFloat = 0
 private let orderBookCenterPadding: CGFloat = 0
 private let orderBookOuterPadding: CGFloat = 4
+private let orderBookSpreadItemGap: CGFloat = 12
 private let orderBookFlashMinChangeFraction = 0.08
 private let orderBookFlashUpOpacity = 0.88
 private let orderBookFlashDownOpacity = 0.78
