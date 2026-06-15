@@ -49,6 +49,7 @@ internal val MarketDetailsUiState.Companion.Preview: MarketDetailsUiState
 private fun previewOrderBookState(): OrderBookViewState {
     val asks = List(8) { index ->
         OrderBookRowDisplay(
+            rowKey = "Ask:${104_260 + index * 7}.00",
             side = OrderBookSide.Ask,
             priceText = "$${104_260 + index * 7}.00",
             sizeText = "${(1.24 + index * 0.18).format(2)}",
@@ -59,6 +60,7 @@ private fun previewOrderBookState(): OrderBookViewState {
     }
     val bids = List(8) { index ->
         OrderBookRowDisplay(
+            rowKey = "Bid:${104_224 - index * 6}.00",
             side = OrderBookSide.Bid,
             priceText = "$${104_224 - index * 6}.00",
             sizeText = "${(1.92 + index * 0.21).format(2)}",
@@ -73,6 +75,7 @@ private fun previewOrderBookState(): OrderBookViewState {
         centerMessage = null,
         midPriceText = "$104,232.10",
         spreadText = "$36.00",
+        spreadPercentText = "0.03%",
         asks = asks,
         bids = bids,
     )

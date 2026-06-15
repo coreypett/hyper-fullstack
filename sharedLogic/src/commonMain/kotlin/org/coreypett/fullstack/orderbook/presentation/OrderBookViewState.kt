@@ -13,6 +13,7 @@ data class OrderBookViewState(
     val centerMessage: String?,
     val midPriceText: String?,
     val spreadText: String?,
+    val spreadPercentText: String?,
     val asks: List<OrderBookRowDisplay>,
     val bids: List<OrderBookRowDisplay>,
 ) {
@@ -25,6 +26,7 @@ data class OrderBookViewState(
             centerMessage = "Connecting",
             midPriceText = null,
             spreadText = null,
+            spreadPercentText = null,
             asks = emptyList(),
             bids = emptyList(),
         )
@@ -37,6 +39,7 @@ data class OrderBookViewState(
                 centerMessage = uiState.message,
                 midPriceText = null,
                 spreadText = null,
+                spreadPercentText = null,
                 asks = emptyList(),
                 bids = emptyList(),
             )
@@ -58,6 +61,7 @@ enum class OrderBookStatus {
 }
 
 data class OrderBookRowDisplay(
+    val rowKey: String,
     val side: OrderBookSide,
     val priceText: String,
     val sizeText: String,
@@ -76,11 +80,13 @@ private fun OrderBookSnapshot.toViewState(
     centerMessage = centerMessage,
     midPriceText = midPrice?.let(MarketNumberFormatter::price),
     spreadText = spreadText,
+    spreadPercentText = spreadPercentText,
     asks = asks.asReversed().map(OrderBookLevel::toRowDisplay),
     bids = bids.map(OrderBookLevel::toRowDisplay),
 )
 
 private fun OrderBookLevel.toRowDisplay(): OrderBookRowDisplay = OrderBookRowDisplay(
+    rowKey = "${side.name}:$price",
     side = side,
     priceText = priceText,
     sizeText = sizeText,
