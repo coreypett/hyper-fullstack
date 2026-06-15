@@ -7,16 +7,22 @@ struct MarketTabs: View {
     let selectedMarket: MarketSymbol
     let onSelect: (MarketSymbol) -> Void
 
+    @State private var shineTrigger = 0
+
     var body: some View {
         HStack(spacing: 10) {
             ForEach([MarketSymbol.btc, .eth, .sol], id: \.self) { market in
                 MarketTabButton(
                     market: market,
                     isSelected: selectedMarket == market,
+                    shineTrigger: shineTrigger,
                     onSelect: onSelect
                 )
                 .frame(maxWidth: .infinity)
             }
+        }
+        .onChange(of: selectedMarket) { _, _ in
+            shineTrigger += 1
         }
     }
 }
@@ -24,6 +30,7 @@ struct MarketTabs: View {
 private struct MarketTabButton: View {
     let market: MarketSymbol
     let isSelected: Bool
+    let shineTrigger: Int
     let onSelect: (MarketSymbol) -> Void
 
     var body: some View {
@@ -50,7 +57,7 @@ private struct MarketTabButton: View {
             )
         }
         .buttonStyle(.plain)
-        .changeEffect(.shine(duration: 0.45), value: isSelected, isEnabled: isSelected)
+        .changeEffect(.shine(duration: 0.45), value: shineTrigger, isEnabled: isSelected)
     }
 }
 
