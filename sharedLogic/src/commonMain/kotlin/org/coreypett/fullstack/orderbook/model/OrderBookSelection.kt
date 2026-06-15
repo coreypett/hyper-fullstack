@@ -4,5 +4,5 @@ import org.coreypett.fullstack.market.model.MarketSymbol
 
 data class OrderBookSelection(
     val market: MarketSymbol = MarketSymbol.BTC,
-    val precision: PricePrecision = PricePrecision.Five,
+    val precision: PricePrecision = PricePrecision.Two,
 )

@@ -23,7 +23,7 @@ internal val MarketDetailsUiState.Companion.Preview: MarketDetailsUiState
     get() = MarketDetailsUiState(
         selectedMarket = MarketSymbol.BTC,
         selectedInterval = CandleInterval.OneHour,
-        selectedPrecision = PricePrecision.Four,
+        selectedPrecision = PricePrecision.Two,
         selectedPanel = MarketDetailsPanel.OrderBook,
         summaryState = MarketSummaryViewState(
             status = MarketSummaryStatus.Live,
