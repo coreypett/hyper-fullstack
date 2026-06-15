@@ -28,6 +28,8 @@ import org.coreypett.fullstack.features.marketdetails.components.MarketDataSecti
 import org.coreypett.fullstack.features.marketdetails.components.MarketSummarySection
 import org.coreypett.fullstack.features.marketdetails.components.MarketTabs
 import org.coreypett.fullstack.market.MR
+import org.coreypett.fullstack.market.candle.presentation.CandleChartState
+import org.coreypett.fullstack.market.summary.model.MarketSummaryViewState
 import org.coreypett.fullstack.support.toComposeColor
 
 @Composable
@@ -109,7 +111,7 @@ fun MarketDetailsScreen(
         )
         MarketSummarySection(
             selectedMarket = state.selectedMarket,
-            summaryState = state.summaryState,
+            summaryState = state.summaryState.withLatestCandlePrice(state.candleState),
             modifier = Modifier.padding(horizontal = 16.dp),
         )
         MarketChartSection(
@@ -128,6 +130,17 @@ fun MarketDetailsScreen(
             modifier = Modifier.padding(horizontal = 16.dp),
         )
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+private fun MarketSummaryViewState.withLatestCandlePrice(
+    candleState: CandleChartState,
+): MarketSummaryViewState {
+    val latestCandlePriceText = candleState.bars.lastOrNull()?.closeText
+    return if (latestCandlePriceText == null) {
+        this
+    } else {
+        copy(midPriceText = latestCandlePriceText)
     }
 }
 
