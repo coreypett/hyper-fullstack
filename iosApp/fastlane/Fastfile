@@ -5,7 +5,8 @@ require "dotenv"
 repo_root = File.expand_path("../..", __dir__)
 Dotenv.overload(File.join(repo_root, "iosApp", ".env"))
 
-ios_project = File.join(repo_root, "iosApp", "hyper-fullstack.xcodeproj")
+ios_project = File.join(repo_root, "iosApp", "iosApp.xcodeproj")
+ios_workspace = File.join(repo_root, "iosApp", "iosApp.xcworkspace")
 derived_data_path = File.join(repo_root, "build", "xcode-derived")
 
 def app_store_api_key
@@ -46,7 +47,7 @@ platform :ios do
     sh("cd #{repo_root}/iosApp && tuist generate --no-open")
     sh([
       "xcodebuild",
-      "-project #{ios_project}",
+      "-workspace #{ios_workspace}",
       "-scheme iosApp",
       "-configuration Debug",
       "-sdk iphonesimulator",
@@ -63,7 +64,7 @@ platform :ios do
     sh("cd #{repo_root}/iosApp && tuist generate --no-open")
 
     gym(
-      project: ios_project,
+      workspace: ios_workspace,
       scheme: "iosApp",
       configuration: "Release",
       export_method: "app-store",

@@ -97,6 +97,7 @@ let project = Project(
                     "CODE_SIGN_STYLE": "Manual",
                     "CURRENT_PROJECT_VERSION": setting(buildNumber),
                     "DEVELOPMENT_TEAM": "$(DEVELOPMENT_TEAM)",
+                    "DEVELOPMENT_ASSET_PATHS": "",
                     "ENABLE_PREVIEWS": "YES",
                     "FRAMEWORK_SEARCH_PATHS": setting([
                         "$(inherited)",
