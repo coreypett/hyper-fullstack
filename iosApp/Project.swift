@@ -7,7 +7,7 @@ let targetName = "iosApp"
 let bundleIdentifier = "org.coreypett.fullstack"
 let deploymentTarget = "26.0"
 let marketingVersion = "1.0"
-let buildNumber = "1"
+let buildNumber = "2"
 
 let infoPlistPath: Path = "iosApp/Resources/Info.plist"
 let sharedFrameworkName = "SharedLogic"
