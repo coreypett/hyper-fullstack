@@ -1,5 +1,8 @@
 package org.coreypett.fullstack.features.marketdetails.components
 
+import android.annotation.SuppressLint
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -8,23 +11,31 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,20 +64,28 @@ fun RecentTradesSection(
         return
     }
 
+    var selectedExplorerUrl by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        val uriHandler = LocalUriHandler.current
         RecentTradesHeader(market = market)
         viewState.recentTrades.take(18).forEach { recentTrade ->
             RecentTradesRow(
                 recentTrade = recentTrade,
                 onOpenTransaction = {
-                    uriHandler.openUri(recentTrade.hyperliquidExplorerUrl())
+                    selectedExplorerUrl = recentTrade.hyperliquidExplorerUrl()
                 },
             )
         }
+    }
+
+    selectedExplorerUrl?.let { url ->
+        HyperliquidExplorerDialog(
+            url = url,
+            onDismiss = { selectedExplorerUrl = null },
+        )
     }
 }
 
@@ -291,6 +310,90 @@ private fun TransactionExplorerButton(
                 end = androidx.compose.ui.geometry.Offset(size.width * 0.58f, inset),
                 strokeWidth = strokeWidth,
                 cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun HyperliquidExplorerDialog(
+    url: String,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .fillMaxHeight(0.86f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MR.colors.app_background.toComposeColor()),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .background(MR.colors.app_panel.toComposeColor())
+                    .padding(start = 14.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val closeColor = MR.colors.text_secondary.toComposeColor()
+                Text(
+                    text = "Hyperliquid",
+                    modifier = Modifier.weight(1f),
+                    color = MR.colors.text_primary.toComposeColor(),
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onDismiss)
+                        .semantics { contentDescription = "Close explorer" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Canvas(modifier = Modifier.size(12.dp)) {
+                        val strokeWidth = 1.5.dp.toPx()
+                        drawLine(
+                            color = closeColor,
+                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            end = androidx.compose.ui.geometry.Offset(size.width, size.height),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round,
+                        )
+                        drawLine(
+                            color = closeColor,
+                            start = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                            end = androidx.compose.ui.geometry.Offset(0f, size.height),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round,
+                        )
+                    }
+                }
+            }
+
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                factory = { context ->
+                    WebView(context).apply {
+                        webViewClient = WebViewClient()
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        loadUrl(url)
+                    }
+                },
+                update = { webView ->
+                    if (webView.url != url) {
+                        webView.loadUrl(url)
+                    }
+                },
             )
         }
     }

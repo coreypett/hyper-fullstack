@@ -1,4 +1,5 @@
 import Pow
+import SafariServices
 @preconcurrency import SharedLogic
 import SwiftUI
 
@@ -174,7 +175,7 @@ private struct RecentTradesSkeletonRow: View {
 private struct RecentTradesList: View {
     let market: MarketSymbol
     let rows: [RecentTradesRow]
-    @Environment(\.openURL) private var openURL
+    @State private var selectedTrade: RecentTradesRow?
 
     var body: some View {
         LazyVStack(spacing: 0) {
@@ -182,9 +183,13 @@ private struct RecentTradesList: View {
 
             ForEach(Array(rows.prefix(18).enumerated()), id: \.element) { _, row in
                 RecentTradesListRow(row: row) {
-                    openURL(row.hyperliquidExplorerURL)
+                    selectedTrade = row
                 }
             }
+        }
+        .sheet(item: $selectedTrade) { row in
+            HyperliquidExplorerSheet(url: row.hyperliquidExplorerURL)
+                .ignoresSafeArea()
         }
     }
 }
@@ -271,6 +276,16 @@ private struct TransactionHashButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Open transaction in Hyperliquid explorer")
     }
+}
+
+private struct HyperliquidExplorerSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        SFSafariViewController(url: url)
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
 private func recentTradesColor(for side: RecentTradesSide) -> Color {
