@@ -178,15 +178,26 @@ private struct RecentTradesList: View {
     @State private var selectedTrade: RecentTradesRow?
 
     var body: some View {
+        let visibleRows = Array(rows.prefix(18))
+
         LazyVStack(spacing: 0) {
             RecentTradesHeaderRow(market: market)
 
-            ForEach(Array(rows.prefix(18).enumerated()), id: \.element) { _, row in
+            ForEach(visibleRows) { row in
                 RecentTradesListRow(row: row) {
                     selectedTrade = row
                 }
+                .transition(
+                    .asymmetric(
+                        insertion: .offset(y: -14)
+                            .combined(with: .opacity)
+                            .combined(with: .scale(scale: 0.98, anchor: .top)),
+                        removal: .opacity
+                    )
+                )
             }
         }
+        .animation(.spring(response: 0.32, dampingFraction: 0.78), value: visibleRows.map(\.id))
         .sheet(item: $selectedTrade) { row in
             HyperliquidExplorerSheet(url: row.hyperliquidExplorerURL)
                 .ignoresSafeArea()
@@ -233,6 +244,7 @@ private struct RecentTradesHeaderCell: View {
 private struct RecentTradesListRow: View {
     let row: RecentTradesRow
     let onSelectHash: () -> Void
+    @State private var flashOpacity = 0.0
 
     var body: some View {
         HStack(spacing: 10) {
@@ -258,6 +270,16 @@ private struct RecentTradesListRow: View {
         .minimumScaleFactor(0.72)
         .frame(height: 30)
         .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(recentTradesColor(for: row.side).opacity(flashOpacity))
+        )
+        .onAppear {
+            flashOpacity = 0.22
+            withAnimation(.easeOut(duration: 0.85).delay(0.04)) {
+                flashOpacity = 0
+            }
+        }
     }
 }
 

@@ -3,6 +3,15 @@ package org.coreypett.fullstack.features.marketdetails.components
 import android.annotation.SuppressLint
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -17,11 +26,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -72,12 +83,14 @@ fun RecentTradesSection(
     ) {
         RecentTradesHeader(market = market)
         viewState.recentTrades.take(18).forEach { recentTrade ->
-            RecentTradesRow(
-                recentTrade = recentTrade,
-                onOpenTransaction = {
-                    selectedExplorerUrl = recentTrade.hyperliquidExplorerUrl()
-                },
-            )
+            key(recentTrade.animationKey()) {
+                RecentTradesAnimatedRow(
+                    recentTrade = recentTrade,
+                    onOpenTransaction = {
+                        selectedExplorerUrl = recentTrade.hyperliquidExplorerUrl()
+                    },
+                )
+            }
         }
     }
 
@@ -211,8 +224,54 @@ private fun RowScope.SizeHeaderCell(
 }
 
 @Composable
+private fun RecentTradesAnimatedRow(
+    recentTrade: RecentTradesRowDisplay,
+    onOpenTransaction: () -> Unit,
+) {
+    val animationKey = recentTrade.animationKey()
+    var isVisible by remember(animationKey) { mutableStateOf(false) }
+    val flashAlpha = remember(animationKey) { Animatable(RecentTradeFlashAlpha) }
+
+    LaunchedEffect(animationKey) {
+        isVisible = true
+        flashAlpha.snapTo(RecentTradeFlashAlpha)
+        flashAlpha.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(durationMillis = 850),
+        )
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = slideInVertically(
+            animationSpec = tween(durationMillis = 260),
+            initialOffsetY = { -it / 2 },
+        ) + expandVertically(
+            animationSpec = tween(durationMillis = 260),
+        ) + fadeIn(
+            animationSpec = tween(durationMillis = 180),
+        ),
+        exit = slideOutVertically(
+            animationSpec = tween(durationMillis = 180),
+            targetOffsetY = { it / 3 },
+        ) + shrinkVertically(
+            animationSpec = tween(durationMillis = 180),
+        ) + fadeOut(
+            animationSpec = tween(durationMillis = 120),
+        ),
+    ) {
+        RecentTradesRow(
+            recentTrade = recentTrade,
+            flashAlpha = flashAlpha.value,
+            onOpenTransaction = onOpenTransaction,
+        )
+    }
+}
+
+@Composable
 private fun RecentTradesRow(
     recentTrade: RecentTradesRowDisplay,
+    flashAlpha: Float,
     onOpenTransaction: () -> Unit,
 ) {
     val sideColor = when (recentTrade.side) {
@@ -225,6 +284,7 @@ private fun RecentTradesRow(
             .fillMaxWidth()
             .height(30.dp)
             .background(MR.colors.app_background.toComposeColor())
+            .background(sideColor.copy(alpha = flashAlpha))
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -406,7 +466,11 @@ private fun Long.toTradeTime(): String {
 private fun RecentTradesRowDisplay.hyperliquidExplorerUrl(): String =
     "https://app.hyperliquid.xyz/explorer/tx/$transactionHash"
 
+private fun RecentTradesRowDisplay.animationKey(): String =
+    "$tradeId-$transactionHash"
+
 private val RecentTradesSizeColumnWidth = 64.dp
+private const val RecentTradeFlashAlpha = 0.22f
 
 private val RecentTradesPriceSkeletonWidths = listOf(72.dp, 84.dp, 64.dp, 78.dp)
 private val RecentTradesSizeSkeletonWidths = listOf(34.dp, 46.dp, 38.dp, 52.dp)
