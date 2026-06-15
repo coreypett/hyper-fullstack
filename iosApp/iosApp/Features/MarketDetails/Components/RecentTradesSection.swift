@@ -38,8 +38,8 @@ struct RecentTradesState {
         self.status = shared.status
         self.statusLabel = shared.statusLabel
         self.centerMessage = shared.centerMessage
-        self.rows = shared.recentTrades.map(RecentTradesRow.init)
-        self.isLoading = shared.status == .connecting && !shared.hasTrades
+        self.rows = shared.visibleTrades.map(RecentTradesRow.init)
+        self.isLoading = shared.isLoading
     }
 
     init(
@@ -58,16 +58,18 @@ struct RecentTradesState {
 }
 
 struct RecentTradesRow: Hashable, Identifiable {
+    let rowId: String
     let side: RecentTradesSide
     let sideText: String
     let priceText: String
     let sizeText: String
     let transactionHash: String
+    let explorerUrl: String
     let timeMillis: Int64
     let tradeId: Int64
 
     var id: String {
-        "\(tradeId)-\(transactionHash)"
+        rowId
     }
 
     var timeText: String {
@@ -75,29 +77,35 @@ struct RecentTradesRow: Hashable, Identifiable {
     }
 
     init(shared: RecentTradesRowDisplay) {
+        self.rowId = shared.rowId
         self.side = shared.side
         self.sideText = shared.sideText
         self.priceText = shared.priceText
         self.sizeText = shared.sizeText
         self.transactionHash = shared.transactionHash
+        self.explorerUrl = shared.explorerUrl
         self.timeMillis = shared.timeMillis
         self.tradeId = shared.tradeId
     }
 
     init(
+        rowId: String? = nil,
         side: RecentTradesSide,
         sideText: String,
         priceText: String,
         sizeText: String,
         transactionHash: String,
+        explorerUrl: String? = nil,
         timeMillis: Int64,
         tradeId: Int64
     ) {
+        self.rowId = rowId ?? "\(tradeId)-\(transactionHash)"
         self.side = side
         self.sideText = sideText
         self.priceText = priceText
         self.sizeText = sizeText
         self.transactionHash = transactionHash
+        self.explorerUrl = explorerUrl ?? "https://app.hyperliquid.xyz/explorer/tx/\(transactionHash)"
         self.timeMillis = timeMillis
         self.tradeId = tradeId
     }
@@ -178,12 +186,10 @@ private struct RecentTradesList: View {
     @State private var selectedTrade: RecentTradesRow?
 
     var body: some View {
-        let visibleRows = Array(rows.prefix(18))
-
         LazyVStack(spacing: 0) {
             RecentTradesHeaderRow(market: market)
 
-            ForEach(visibleRows) { row in
+            ForEach(rows) { row in
                 RecentTradesListRow(row: row) {
                     selectedTrade = row
                 }
@@ -197,7 +203,7 @@ private struct RecentTradesList: View {
                 )
             }
         }
-        .animation(.spring(response: 0.32, dampingFraction: 0.78), value: visibleRows.map(\.id))
+        .animation(.spring(response: 0.32, dampingFraction: 0.78), value: rows.map(\.id))
         .sheet(item: $selectedTrade) { row in
             HyperliquidExplorerSheet(url: row.hyperliquidExplorerURL)
                 .ignoresSafeArea()
@@ -326,7 +332,7 @@ private func recentTradesColor(for side: RecentTradesSide) -> Color {
 
 private extension RecentTradesRow {
     var hyperliquidExplorerURL: URL {
-        URL(string: "https://app.hyperliquid.xyz/explorer/tx/\(transactionHash)")!
+        URL(string: explorerUrl)!
     }
 }
 

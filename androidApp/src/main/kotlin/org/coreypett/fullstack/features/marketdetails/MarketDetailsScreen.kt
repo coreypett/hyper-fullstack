@@ -30,6 +30,7 @@ import org.coreypett.fullstack.features.marketdetails.components.MarketTabs
 import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.market.candle.presentation.CandleChartState
 import org.coreypett.fullstack.market.summary.model.MarketSummaryViewState
+import org.coreypett.fullstack.marketdetails.presentation.MarketDetailsPanel
 import org.coreypett.fullstack.support.toComposeColor
 
 @Composable

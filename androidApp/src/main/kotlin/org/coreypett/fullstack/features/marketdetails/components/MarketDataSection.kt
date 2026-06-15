@@ -30,10 +30,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.coreypett.fullstack.features.marketdetails.MarketDetailsPanel
 import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
+import org.coreypett.fullstack.marketdetails.presentation.MarketDetailsDisplay
+import org.coreypett.fullstack.marketdetails.presentation.MarketDetailsPanel
 import org.coreypett.fullstack.orderbook.model.PricePrecision
 import org.coreypett.fullstack.orderbook.presentation.OrderBookViewState
 import org.coreypett.fullstack.support.hapticClickable
@@ -98,7 +99,7 @@ private fun PanelSelector(
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        MarketDetailsPanel.entries.forEach { panel ->
+        MarketDetailsDisplay.panels.forEach { panel ->
             val isSelected = panel == selectedPanel
             Box(
                 modifier = Modifier

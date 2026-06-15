@@ -12,6 +12,7 @@ import org.coreypett.fullstack.market.trade.model.RecentTradesSide
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesRowDisplay
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesStatus
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
+import org.coreypett.fullstack.marketdetails.presentation.MarketDetailsPanel
 import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
 import org.coreypett.fullstack.orderbook.model.PricePrecision

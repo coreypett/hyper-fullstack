@@ -34,6 +34,7 @@ import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
 import org.coreypett.fullstack.orderbook.presentation.OrderBookRowDisplay
+import org.coreypett.fullstack.orderbook.presentation.OrderBookRowPair
 import org.coreypett.fullstack.orderbook.presentation.OrderBookStatus
 import org.coreypett.fullstack.orderbook.presentation.OrderBookViewState
 import org.coreypett.fullstack.support.toComposeColor
@@ -51,10 +52,6 @@ fun OrderBookSection(
         return
     }
 
-    val asks = viewState.asks.asReversed()
-    val bids = viewState.bids
-    val rowCount = maxOf(asks.size, bids.size).coerceAtMost(12)
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -64,10 +61,9 @@ fun OrderBookSection(
             spreadText = viewState.spreadText ?: "--",
             spreadPercentText = viewState.spreadPercentText ?: "--",
         )
-        repeat(rowCount) { index ->
+        viewState.pairedRows.take(MaxOrderBookRows).forEach { pair ->
             PairedOrderBookRow(
-                bid = bids.getOrNull(index),
-                ask = asks.getOrNull(index),
+                pair = pair,
             )
         }
     }
@@ -206,8 +202,7 @@ private fun RowScope.HeaderCell(
 
 @Composable
 private fun PairedOrderBookRow(
-    bid: OrderBookRowDisplay?,
-    ask: OrderBookRowDisplay?,
+    pair: OrderBookRowPair,
 ) {
     Box(
         modifier = Modifier
@@ -215,8 +210,8 @@ private fun PairedOrderBookRow(
             .height(30.dp),
     ) {
         DepthColumns(
-            bid = bid,
-            ask = ask,
+            bid = pair.bid,
+            ask = pair.ask,
             modifier = Modifier.matchParentSize(),
         )
 
@@ -226,11 +221,11 @@ private fun PairedOrderBookRow(
             horizontalArrangement = Arrangement.spacedBy(OrderBookTextCenterGap),
         ) {
             BidColumns(
-                level = bid,
+                level = pair.bid,
                 modifier = Modifier.weight(1f),
             )
             AskColumns(
-                level = ask,
+                level = pair.ask,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -448,6 +443,7 @@ private val OrderBookSpreadItemGap = 12.dp
 private const val OrderBookFlashMinChangeFraction = 0.08f
 private const val OrderBookFlashUpTextProgress = 0.88f
 private const val OrderBookFlashDownTextProgress = 0.78f
+private const val MaxOrderBookRows = 12
 
 private val SkeletonPriceWidths = listOf(72.dp, 84.dp, 64.dp, 78.dp)
 private val SkeletonSizeWidths = listOf(34.dp, 46.dp, 38.dp, 52.dp)

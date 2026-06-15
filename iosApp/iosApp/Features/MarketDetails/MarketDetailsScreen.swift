@@ -1,23 +1,9 @@
 @preconcurrency import SharedLogic
 import SwiftUI
 
-enum MarketDataPanel: CaseIterable {
-    case orderBook
-    case recentTrades
-
-    var title: String {
-        switch self {
-        case .orderBook:
-            return "Order Book"
-        case .recentTrades:
-            return "Trades"
-        }
-    }
-}
-
 struct MarketDetailsScreen: View {
     @StateObject private var viewModel: MarketDetailsViewModel
-    @State private var selectedMarketDataPanel: MarketDataPanel = .orderBook
+    @State private var selectedMarketDataPanel: MarketDetailsPanel = .orderBook
 
     init(viewModel: MarketDetailsViewModel = MarketDetailsViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)

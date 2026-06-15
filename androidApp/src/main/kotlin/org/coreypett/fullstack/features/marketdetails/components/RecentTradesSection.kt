@@ -82,12 +82,12 @@ fun RecentTradesSection(
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         RecentTradesHeader(market = market)
-        viewState.recentTrades.take(18).forEach { recentTrade ->
-            key(recentTrade.animationKey()) {
+        viewState.visibleTrades.forEach { recentTrade ->
+            key(recentTrade.rowId) {
                 RecentTradesAnimatedRow(
                     recentTrade = recentTrade,
                     onOpenTransaction = {
-                        selectedExplorerUrl = recentTrade.hyperliquidExplorerUrl()
+                        selectedExplorerUrl = recentTrade.explorerUrl
                     },
                 )
             }
@@ -228,7 +228,7 @@ private fun RecentTradesAnimatedRow(
     recentTrade: RecentTradesRowDisplay,
     onOpenTransaction: () -> Unit,
 ) {
-    val animationKey = recentTrade.animationKey()
+    val animationKey = recentTrade.rowId
     var isVisible by remember(animationKey) { mutableStateOf(false) }
     val flashAlpha = remember(animationKey) { Animatable(RecentTradeFlashAlpha) }
 
@@ -462,12 +462,6 @@ private fun HyperliquidExplorerDialog(
 private fun Long.toTradeTime(): String {
     return SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(this))
 }
-
-private fun RecentTradesRowDisplay.hyperliquidExplorerUrl(): String =
-    "https://app.hyperliquid.xyz/explorer/tx/$transactionHash"
-
-private fun RecentTradesRowDisplay.animationKey(): String =
-    "$tradeId-$transactionHash"
 
 private val RecentTradesSizeColumnWidth = 64.dp
 private const val RecentTradeFlashAlpha = 0.22f

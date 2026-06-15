@@ -3,11 +3,11 @@ import Pow
 import SwiftUI
 
 struct MarketDataSection: View {
-    let selectedPanel: MarketDataPanel
+    let selectedPanel: MarketDetailsPanel
     let selection: OrderBookSelection
     let orderBook: OrderBookState
     let recentTrades: RecentTradesState
-    let onSelectPanel: (MarketDataPanel) -> Void
+    let onSelectPanel: (MarketDetailsPanel) -> Void
     let onSelectPrecision: (PricePrecision) -> Void
 
     var body: some View {
@@ -43,12 +43,12 @@ struct MarketDataSection: View {
 }
 
 private struct MarketDataPanelSelector: View {
-    let selectedPanel: MarketDataPanel
-    let onSelect: (MarketDataPanel) -> Void
+    let selectedPanel: MarketDetailsPanel
+    let onSelect: (MarketDetailsPanel) -> Void
 
     var body: some View {
         HStack(spacing: 3) {
-            ForEach(MarketDataPanel.allCases, id: \.self) { panel in
+            ForEach(marketDataPanels, id: \.self) { panel in
                 Button {
                     AppHaptics.selectionChanged()
                     onSelect(panel)
@@ -123,3 +123,5 @@ private struct GroupingMenu: View {
 private func groupingLabel(for precision: PricePrecision) -> String {
     "\(precision.nSigFigs)"
 }
+
+private let marketDataPanels: [MarketDetailsPanel] = [.orderBook, .recentTrades]

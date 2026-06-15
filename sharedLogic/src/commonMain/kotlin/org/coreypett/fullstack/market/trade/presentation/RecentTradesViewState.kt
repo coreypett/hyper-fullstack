@@ -11,6 +11,8 @@ data class RecentTradesViewState(
     val recentTrades: List<RecentTradesRowDisplay>,
 ) {
     val hasTrades: Boolean = recentTrades.isNotEmpty()
+    val isLoading: Boolean = status == RecentTradesStatus.Connecting && !hasTrades
+    val visibleTrades: List<RecentTradesRowDisplay> = recentTrades.take(MaxVisibleRecentTrades)
 
     companion object {
         val Connecting = RecentTradesViewState(
@@ -53,7 +55,10 @@ data class RecentTradesRowDisplay(
     val transactionHash: String,
     val timeMillis: Long,
     val tradeId: Long,
-)
+) {
+    val rowId: String = "$tradeId-$transactionHash"
+    val explorerUrl: String = "$HyperliquidExplorerTransactionBaseUrl$transactionHash"
+}
 
 private fun List<RecentTradesEntry>.toRecentTradesViewState(
     status: RecentTradesStatus,
@@ -79,3 +84,6 @@ private fun RecentTradesEntry.toRecentTradesRowDisplay(): RecentTradesRowDisplay
     timeMillis = timeMillis,
     tradeId = tradeId,
 )
+
+private const val MaxVisibleRecentTrades = 18
+private const val HyperliquidExplorerTransactionBaseUrl = "https://app.hyperliquid.xyz/explorer/tx/"

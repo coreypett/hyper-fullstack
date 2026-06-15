@@ -8,6 +8,7 @@ import org.coreypett.fullstack.market.summary.model.MarketSummaryViewState
 import org.coreypett.fullstack.market.summary.presentation.MarketSummaryFeature
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesFeature
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
+import org.coreypett.fullstack.marketdetails.presentation.MarketDetailsPanel
 import org.coreypett.fullstack.orderbook.model.PricePrecision
 import org.coreypett.fullstack.orderbook.presentation.OrderBookFeature
 import org.coreypett.fullstack.orderbook.presentation.OrderBookViewState
@@ -47,16 +48,3 @@ data class MarketDetailsCallbacks(
         )
     }
 }
-
-enum class MarketDetailsPanel(val title: String) {
-    OrderBook("Order Book"),
-    RecentTrades("Trades"),
-}
-
-val MarketDetailsChartIntervals: List<CandleInterval> = listOf(
-    CandleInterval.OneMinute,
-    CandleInterval.FiveMinutes,
-    CandleInterval.OneHour,
-    CandleInterval.FourHours,
-    CandleInterval.OneDay,
-)

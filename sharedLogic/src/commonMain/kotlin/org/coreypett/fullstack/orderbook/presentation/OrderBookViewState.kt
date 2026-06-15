@@ -18,6 +18,18 @@ data class OrderBookViewState(
     val bids: List<OrderBookRowDisplay>,
 ) {
     val hasRows: Boolean = asks.isNotEmpty() || bids.isNotEmpty()
+    val isLoading: Boolean = status == OrderBookStatus.Connecting && !hasRows
+    val pairedRows: List<OrderBookRowPair>
+        get() {
+            val visibleAsks = asks.asReversed()
+            val rowCount = maxOf(bids.size, visibleAsks.size)
+            return List(rowCount) { index ->
+                OrderBookRowPair(
+                    bid = bids.getOrNull(index),
+                    ask = visibleAsks.getOrNull(index),
+                )
+            }
+        }
 
     companion object {
         val Connecting = OrderBookViewState(
@@ -69,6 +81,11 @@ data class OrderBookRowDisplay(
     val depthFraction: Float,
     val sizeChangeFraction: Float,
     val change: LevelChange,
+)
+
+data class OrderBookRowPair(
+    val bid: OrderBookRowDisplay?,
+    val ask: OrderBookRowDisplay?,
 )
 
 private fun OrderBookSnapshot.toViewState(

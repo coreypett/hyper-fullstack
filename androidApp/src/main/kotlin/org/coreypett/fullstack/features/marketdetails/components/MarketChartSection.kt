@@ -53,12 +53,12 @@ import com.tradingview.lightweightcharts.api.series.models.PriceScaleId
 import com.tradingview.lightweightcharts.api.series.models.Time
 import com.tradingview.lightweightcharts.runtime.plugins.Eval
 import com.tradingview.lightweightcharts.view.ChartsView
-import org.coreypett.fullstack.features.marketdetails.MarketDetailsChartIntervals
 import org.coreypett.fullstack.market.MR
 import org.coreypett.fullstack.market.candle.model.CandleBar
 import org.coreypett.fullstack.market.candle.model.CandleInterval
 import org.coreypett.fullstack.market.candle.presentation.CandleChartStatus
 import org.coreypett.fullstack.market.candle.presentation.CandleChartState
+import org.coreypett.fullstack.marketdetails.presentation.MarketDetailsDisplay
 import org.coreypett.fullstack.support.hapticClickable
 import org.coreypett.fullstack.support.toComposeColor
 
@@ -176,7 +176,7 @@ private fun IntervalSelector(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MarketDetailsChartIntervals.forEach { interval ->
+            MarketDetailsDisplay.chartIntervals.forEach { interval ->
                 val isSelected = interval == selectedInterval
                 Text(
                     text = interval.chartLabel,
@@ -391,9 +391,6 @@ private fun CandleBar.toVolumeData(
     value = volume.toFloat(),
     color = IntColor(if (close >= open) upColor else downColor),
 )
-
-private val CandleInterval.chartLabel: String
-    get() = if (this == CandleInterval.OneDay) "1D" else displayName
 
 private const val VolumePriceScaleId = "volume"
 

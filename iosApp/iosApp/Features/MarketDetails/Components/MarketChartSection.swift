@@ -123,7 +123,7 @@ private struct IntervalSelector: View {
                         AppHaptics.selectionChanged()
                         onSelect(interval)
                     } label: {
-                        Text(intervalLabel(for: interval))
+                        Text(interval.chartLabel)
                             .font(.system(size: 12, weight: selectedInterval == interval ? .semibold : .medium))
                             .foregroundStyle(intervalColor(for: interval))
                             .lineLimit(1)
@@ -346,10 +346,6 @@ function(prices) {
     });
 }
 """#
-
-private func intervalLabel(for interval: CandleInterval) -> String {
-    interval == .oneDay ? "1D" : interval.displayName
-}
 
 private let chartIntervals: [CandleInterval] = [
     .oneMinute,

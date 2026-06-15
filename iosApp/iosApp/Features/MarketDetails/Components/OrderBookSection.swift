@@ -9,21 +9,11 @@ struct OrderBookState {
     let spreadPercentText: String?
     let asks: [OrderBookRow]
     let bids: [OrderBookRow]
+    let pairedRows: [OrderBookLevelPair]
     let isLoading: Bool
 
     var hasRows: Bool {
         !asks.isEmpty || !bids.isEmpty
-    }
-
-    var pairedRows: [OrderBookLevelPair] {
-        let visibleAsks = Array(asks.reversed())
-        let rowCount = max(bids.count, visibleAsks.count)
-        return (0..<rowCount).map { index in
-            OrderBookLevelPair(
-                bid: bids.indices.contains(index) ? bids[index] : nil,
-                ask: visibleAsks.indices.contains(index) ? visibleAsks[index] : nil
-            )
-        }
     }
 
     static let preview = OrderBookState(
@@ -53,6 +43,7 @@ struct OrderBookState {
         spreadPercentText: nil,
         asks: [],
         bids: [],
+        pairedRows: [],
         isLoading: true
     )
 
@@ -64,7 +55,8 @@ struct OrderBookState {
         self.spreadPercentText = shared.spreadPercentText
         self.asks = shared.asks.map(OrderBookRow.init)
         self.bids = shared.bids.map(OrderBookRow.init)
-        self.isLoading = shared.status == .connecting && !shared.hasRows
+        self.pairedRows = shared.pairedRows.map(OrderBookLevelPair.init)
+        self.isLoading = shared.isLoading
     }
 
     init(
@@ -75,6 +67,7 @@ struct OrderBookState {
         spreadPercentText: String?,
         asks: [OrderBookRow],
         bids: [OrderBookRow],
+        pairedRows: [OrderBookLevelPair]? = nil,
         isLoading: Bool
     ) {
         self.status = status
@@ -84,7 +77,19 @@ struct OrderBookState {
         self.spreadPercentText = spreadPercentText
         self.asks = asks
         self.bids = bids
+        self.pairedRows = pairedRows ?? OrderBookState.pairRows(bids: bids, asks: asks)
         self.isLoading = isLoading
+    }
+
+    private static func pairRows(bids: [OrderBookRow], asks: [OrderBookRow]) -> [OrderBookLevelPair] {
+        let visibleAsks = Array(asks.reversed())
+        let rowCount = max(bids.count, visibleAsks.count)
+        return (0..<rowCount).map { index in
+            OrderBookLevelPair(
+                bid: bids.indices.contains(index) ? bids[index] : nil,
+                ask: visibleAsks.indices.contains(index) ? visibleAsks[index] : nil
+            )
+        }
     }
 }
 
@@ -133,6 +138,16 @@ struct OrderBookRow: Hashable {
 struct OrderBookLevelPair {
     let bid: OrderBookRow?
     let ask: OrderBookRow?
+
+    init(shared: OrderBookRowPair) {
+        self.bid = shared.bid.map(OrderBookRow.init)
+        self.ask = shared.ask.map(OrderBookRow.init)
+    }
+
+    init(bid: OrderBookRow?, ask: OrderBookRow?) {
+        self.bid = bid
+        self.ask = ask
+    }
 }
 
 struct OrderBookSection: View {
