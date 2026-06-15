@@ -313,7 +313,6 @@ private struct PriceDepth: View {
                 sideColor(for: side)
                     .opacity(level == nil ? 0 : 0.11)
                     .frame(width: geometry.size.width * CGFloat(depthFraction))
-                    .animation(.easeInOut(duration: 0.18), value: depthFraction)
             }
             .frame(
                 width: geometry.size.width,
@@ -413,7 +412,7 @@ private struct SizeText: View {
             return
         }
         flashOpacity = startOpacity
-        withAnimation(.easeOut(duration: 0.24)) {
+        withAnimation(.easeOut(duration: 0.14)) {
             flashOpacity = 0
         }
     }

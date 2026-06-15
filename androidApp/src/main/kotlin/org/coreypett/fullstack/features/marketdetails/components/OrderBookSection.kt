@@ -2,7 +2,6 @@ package org.coreypett.fullstack.features.marketdetails.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -278,22 +277,16 @@ private fun RowScope.PriceDepth(
 ) {
     val sideColor = if (side == OrderBookSide.Bid) MR.colors.bid.toComposeColor() else MR.colors.ask.toComposeColor()
     val targetDepth = level?.depthFraction?.coerceIn(0f, 1f) ?: 0f
-    val animatedDepth by animateFloatAsState(
-        targetValue = targetDepth,
-        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-        label = "orderBookDepth",
-    )
-
     BoxWithConstraints(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
     ) {
-        if (animatedDepth > 0f) {
+        if (targetDepth > 0f) {
             Box(
                 modifier = Modifier
                     .align(if (side == OrderBookSide.Bid) Alignment.CenterEnd else Alignment.CenterStart)
-                    .width(maxWidth * animatedDepth)
+                    .width(maxWidth * targetDepth)
                     .fillMaxHeight()
                     .background(sideColor.copy(alpha = 0.11f)),
             )
@@ -367,7 +360,7 @@ private fun RowScope.SizeText(
             flashProgress.snapTo(startProgress)
             flashProgress.animateTo(
                 targetValue = 0f,
-                animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                animationSpec = tween(durationMillis = 140, easing = FastOutSlowInEasing),
             )
         } else {
             flashProgress.snapTo(0f)

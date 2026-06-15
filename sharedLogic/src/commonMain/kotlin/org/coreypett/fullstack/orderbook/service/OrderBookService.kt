@@ -38,7 +38,7 @@ internal interface OrderBookService {
         private val json: Json = HyperliquidJson,
     ) : OrderBookService {
         override fun snapshotEvents(selection: OrderBookSelection): Flow<RealtimeFeedEvent<OrderBookSnapshot>> = flow {
-            val previousSizes = mutableMapOf<String, Double>()
+            val previousSizes = PreviousBookSizes()
 
             webSocketClient.subscribeEvents(
                 subscription = l2BookSubscription(selection),
@@ -61,7 +61,7 @@ internal interface OrderBookService {
         private fun parseSnapshot(
             text: String,
             selection: OrderBookSelection,
-            previousSizes: MutableMap<String, Double>,
+            previousSizes: PreviousBookSizes,
         ): OrderBookSnapshot? {
             val envelope = json.decodeFromString(HyperliquidWebSocketEnvelopeDto.serializer(), text)
             if (envelope.channel != "l2Book") return null
@@ -72,13 +72,13 @@ internal interface OrderBookService {
             val bids = parseSide(
                 levels = data.levels.getOrNull(0) ?: return null,
                 side = OrderBookSide.Bid,
-                previousSizes = previousSizes,
+                previousBookSizes = previousSizes,
             ).sortedByDescending(OrderBookLevel::price)
 
             val asks = parseSide(
                 levels = data.levels.getOrNull(1) ?: return null,
                 side = OrderBookSide.Ask,
-                previousSizes = previousSizes,
+                previousBookSizes = previousSizes,
             ).sortedBy(OrderBookLevel::price)
 
             return OrderBookSnapshot(
@@ -93,21 +93,24 @@ internal interface OrderBookService {
         private fun parseSide(
             levels: List<L2BookLevelDto>,
             side: OrderBookSide,
-            previousSizes: MutableMap<String, Double>,
+            previousBookSizes: PreviousBookSizes,
         ): List<OrderBookLevel> {
             val parsed = levels
+                .asSequence()
                 .mapNotNull { level ->
                     val price = level.priceValue ?: return@mapNotNull null
                     val size = level.sizeValue ?: return@mapNotNull null
                     ParsedLevel(price = price, size = size, orderCount = level.orderCount)
                 }
                 .take(MaxVisibleLevels)
+                .toList()
 
             val maxSize = parsed.maxOfOrNull(ParsedLevel::size)?.takeIf { it > 0.0 } ?: 1.0
+            val previousSizes = previousBookSizes.forSide(side)
+            previousSizes.keys.retainAll(parsed.mapTo(mutableSetOf(), ParsedLevel::price))
+
             return parsed.map { level ->
-                val key = "${side.name}:${level.price}"
-                val previousSize = previousSizes[key]
-                previousSizes[key] = level.size
+                val previousSize = previousSizes.put(level.price, level.size)
 
                 OrderBookLevel(
                     side = side,
@@ -126,6 +129,14 @@ internal interface OrderBookService {
             val size: Double,
             val orderCount: Int,
         )
+
+        private class PreviousBookSizes {
+            private val bids = mutableMapOf<Double, Double>()
+            private val asks = mutableMapOf<Double, Double>()
+
+            fun forSide(side: OrderBookSide): MutableMap<Double, Double> =
+                if (side == OrderBookSide.Bid) bids else asks
+        }
 
         private fun l2BookSubscription(selection: OrderBookSelection): L2BookSubscriptionDto =
             L2BookSubscriptionDto(

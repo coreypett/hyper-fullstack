@@ -11,11 +11,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.isActive
@@ -60,7 +63,10 @@ internal interface HyperliquidWebSocketClient {
     ) : HyperliquidWebSocketClient {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         private val mutex = Mutex()
-        private val events = MutableSharedFlow<HyperliquidWebSocketEvent>(extraBufferCapacity = EventBufferCapacity)
+        private val events = MutableSharedFlow<HyperliquidWebSocketEvent>(
+            extraBufferCapacity = EventBufferCapacity,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
         private val subscriptionCounts = mutableMapOf<String, Int>()
         private var connectionJob: Job? = null
         private var activeSession: DefaultClientWebSocketSession? = null
@@ -83,7 +89,7 @@ internal interface HyperliquidWebSocketClient {
             )
             val collector = launch {
                 events.collect { event ->
-                    send(event)
+                    trySend(event)
                 }
             }
 
@@ -98,7 +104,7 @@ internal interface HyperliquidWebSocketClient {
                 collector.cancel()
                 scope.launch { unregister(requestTexts) }
             }
-        }
+        }.buffer(Channel.CONFLATED)
 
         private suspend fun register(requestText: String) {
             mutex.lock()
@@ -171,14 +177,14 @@ internal interface HyperliquidWebSocketClient {
 
                         for (frame in incoming) {
                             val textFrame = frame as? Frame.Text ?: continue
-                            events.emit(HyperliquidWebSocketEvent.Text(textFrame.readText()))
+                            events.tryEmit(HyperliquidWebSocketEvent.Text(textFrame.readText()))
                         }
                     }
                 } catch (error: Throwable) {
                     if (error is CancellationException) throw error
                     attempt += 1
                     val delayMillis = retryPolicy.delayMillis(attempt, error)
-                    events.emit(
+                    events.tryEmit(
                         HyperliquidWebSocketEvent.Reconnecting(
                             attempt = attempt,
                             delayMillis = delayMillis,
@@ -200,7 +206,7 @@ internal interface HyperliquidWebSocketClient {
 
                 attempt += 1
                 val delayMillis = retryPolicy.delayMillis(attempt, null)
-                events.emit(
+                events.tryEmit(
                     HyperliquidWebSocketEvent.Reconnecting(
                         attempt = attempt,
                         delayMillis = delayMillis,
