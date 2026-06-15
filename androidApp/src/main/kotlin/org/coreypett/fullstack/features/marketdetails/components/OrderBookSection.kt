@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -351,37 +352,37 @@ private fun RowScope.SizeText(
     textAlign: TextAlign,
 ) {
     val sideColor = if (side == OrderBookSide.Bid) MR.colors.bid.toComposeColor() else MR.colors.ask.toComposeColor()
-    val flashAlpha = remember(level?.rowKey) { Animatable(0f) }
+    val textColor = MR.colors.text_primary.toComposeColor()
+    val flashProgress = remember(level?.rowKey) { Animatable(0f) }
 
     LaunchedEffect(level?.rowKey, level?.sizeText, level?.change, level?.sizeChangeFraction) {
-        val startAlpha = when {
+        val startProgress = when {
             level == null -> 0f
             level.change == LevelChange.None -> 0f
             level.sizeChangeFraction < OrderBookFlashMinChangeFraction -> 0f
-            level.change == LevelChange.Up -> OrderBookFlashUpAlpha
-            else -> OrderBookFlashDownAlpha
+            level.change == LevelChange.Up -> OrderBookFlashUpTextProgress
+            else -> OrderBookFlashDownTextProgress
         }
-        if (startAlpha > 0f) {
-            flashAlpha.snapTo(startAlpha)
-            flashAlpha.animateTo(
+        if (startProgress > 0f) {
+            flashProgress.snapTo(startProgress)
+            flashProgress.animateTo(
                 targetValue = 0f,
                 animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
             )
         } else {
-            flashAlpha.snapTo(0f)
+            flashProgress.snapTo(0f)
         }
     }
 
     Box(
         modifier = Modifier
             .weight(1f)
-            .fillMaxHeight()
-            .background(sideColor.copy(alpha = flashAlpha.value)),
+            .fillMaxHeight(),
         contentAlignment = if (textAlign == TextAlign.End) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         Text(
             text = level?.sizeText ?: "",
-            color = MR.colors.text_primary.toComposeColor(),
+            color = lerp(textColor, sideColor, flashProgress.value),
             fontSize = 13.sp,
             fontFamily = FontFamily.Monospace,
             textAlign = textAlign,
@@ -459,8 +460,8 @@ private val OrderBookDepthCenterGap = 0.dp
 private val OrderBookCenterPadding = 0.dp
 private val OrderBookOuterPadding = 4.dp
 private const val OrderBookFlashMinChangeFraction = 0.08f
-private const val OrderBookFlashUpAlpha = 0.16f
-private const val OrderBookFlashDownAlpha = 0.11f
+private const val OrderBookFlashUpTextProgress = 0.88f
+private const val OrderBookFlashDownTextProgress = 0.78f
 
 private val SkeletonPriceWidths = listOf(72.dp, 84.dp, 64.dp, 78.dp)
 private val SkeletonSizeWidths = listOf(34.dp, 46.dp, 38.dp, 52.dp)

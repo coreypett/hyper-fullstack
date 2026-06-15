@@ -1,4 +1,3 @@
-import Pow
 @preconcurrency import SharedLogic
 import SwiftUI
 
@@ -371,15 +370,19 @@ private struct SizeText: View {
     @State private var flashOpacity = 0.0
 
     var body: some View {
-        Text(level?.sizeText ?? "")
-            .foregroundStyle(MR.colors.shared.text_primary.swiftUIColor)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .background(sideColor(for: side).opacity(flashOpacity))
-            .onChange(of: flashTrigger) { _, _ in
-                runFlash()
-            }
+        ZStack(alignment: alignment) {
+            Text(level?.sizeText ?? "")
+                .foregroundStyle(MR.colors.shared.text_primary.swiftUIColor)
+
+            Text(level?.sizeText ?? "")
+                .foregroundStyle(sideColor(for: side).opacity(flashOpacity))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+        .onChange(of: flashTrigger) { _, _ in
+            runFlash()
+        }
     }
 
     private var flashTrigger: String? {
@@ -474,8 +477,8 @@ private let orderBookDepthCenterGap: CGFloat = 0
 private let orderBookCenterPadding: CGFloat = 0
 private let orderBookOuterPadding: CGFloat = 4
 private let orderBookFlashMinChangeFraction = 0.08
-private let orderBookFlashUpOpacity = 0.16
-private let orderBookFlashDownOpacity = 0.11
+private let orderBookFlashUpOpacity = 0.88
+private let orderBookFlashDownOpacity = 0.78
 
 private func sideColor(for side: OrderBookSide) -> Color {
     side == .bid ? MR.colors.shared.bid.swiftUIColor : MR.colors.shared.ask.swiftUIColor
