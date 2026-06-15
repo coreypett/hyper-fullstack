@@ -18,9 +18,9 @@ struct RecentTradesState {
         statusLabel: "Live",
         centerMessage: nil,
         rows: [
-            RecentTradesRow(side: .buy, sideText: "Buy", priceText: "$69,125.50", sizeText: "0.42", timeMillis: 1_710_000_000_000, tradeId: 42),
-            RecentTradesRow(side: .sell, sideText: "Sell", priceText: "$69,124", sizeText: "0.25", timeMillis: 1_710_000_000_100, tradeId: 43),
-            RecentTradesRow(side: .buy, sideText: "Buy", priceText: "$69,126", sizeText: "0.18", timeMillis: 1_710_000_000_200, tradeId: 44),
+            RecentTradesRow(side: .buy, sideText: "Buy", priceText: "$69,125.50", sizeText: "0.42", transactionHash: "0xabc123def4567890", timeMillis: 1_710_000_000_000, tradeId: 42),
+            RecentTradesRow(side: .sell, sideText: "Sell", priceText: "$69,124", sizeText: "0.25", transactionHash: "0xdef456abc1237890", timeMillis: 1_710_000_000_100, tradeId: 43),
+            RecentTradesRow(side: .buy, sideText: "Buy", priceText: "$69,126", sizeText: "0.18", transactionHash: "0x7890abc123def456", timeMillis: 1_710_000_000_200, tradeId: 44),
         ],
         isLoading: false
     )
@@ -56,13 +56,18 @@ struct RecentTradesState {
     }
 }
 
-struct RecentTradesRow: Hashable {
+struct RecentTradesRow: Hashable, Identifiable {
     let side: RecentTradesSide
     let sideText: String
     let priceText: String
     let sizeText: String
+    let transactionHash: String
     let timeMillis: Int64
     let tradeId: Int64
+
+    var id: String {
+        "\(tradeId)-\(transactionHash)"
+    }
 
     var timeText: String {
         Self.timeFormatter.string(from: Date(timeIntervalSince1970: Double(timeMillis) / 1_000))
@@ -73,6 +78,7 @@ struct RecentTradesRow: Hashable {
         self.sideText = shared.sideText
         self.priceText = shared.priceText
         self.sizeText = shared.sizeText
+        self.transactionHash = shared.transactionHash
         self.timeMillis = shared.timeMillis
         self.tradeId = shared.tradeId
     }
@@ -82,6 +88,7 @@ struct RecentTradesRow: Hashable {
         sideText: String,
         priceText: String,
         sizeText: String,
+        transactionHash: String,
         timeMillis: Int64,
         tradeId: Int64
     ) {
@@ -89,6 +96,7 @@ struct RecentTradesRow: Hashable {
         self.sideText = sideText
         self.priceText = priceText
         self.sizeText = sizeText
+        self.transactionHash = transactionHash
         self.timeMillis = timeMillis
         self.tradeId = tradeId
     }
@@ -166,13 +174,16 @@ private struct RecentTradesSkeletonRow: View {
 private struct RecentTradesList: View {
     let market: MarketSymbol
     let rows: [RecentTradesRow]
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         LazyVStack(spacing: 0) {
             RecentTradesHeaderRow(market: market)
 
             ForEach(Array(rows.prefix(18).enumerated()), id: \.element) { _, row in
-                RecentTradesListRow(row: row)
+                RecentTradesListRow(row: row) {
+                    openURL(row.hyperliquidExplorerURL)
+                }
             }
         }
     }
@@ -216,6 +227,7 @@ private struct RecentTradesHeaderCell: View {
 
 private struct RecentTradesListRow: View {
     let row: RecentTradesRow
+    let onSelectHash: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -228,15 +240,36 @@ private struct RecentTradesListRow: View {
                 .frame(width: recentTradesSizeColumnWidth, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .center)
 
-            Text(row.timeText)
-                .foregroundStyle(MR.colors.shared.text_secondary.swiftUIColor)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            HStack(spacing: 6) {
+                Text(row.timeText)
+                    .foregroundStyle(MR.colors.shared.text_secondary.swiftUIColor)
+
+                TransactionHashButton(action: onSelectHash)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .font(.system(size: 13, design: .monospaced))
         .lineLimit(1)
         .minimumScaleFactor(0.72)
         .frame(height: 30)
         .padding(.horizontal, 4)
+    }
+}
+
+private struct TransactionHashButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(MR.colors.shared.text_secondary.swiftUIColor)
+                .frame(width: 22, height: 22)
+                .background(MR.colors.shared.app_panel.swiftUIColor.opacity(0.82))
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open transaction in Hyperliquid explorer")
     }
 }
 
@@ -248,6 +281,12 @@ private func recentTradesColor(for side: RecentTradesSide) -> Color {
         return MR.colors.shared.ask.swiftUIColor
     case .unknown:
         return MR.colors.shared.text_secondary.swiftUIColor
+    }
+}
+
+private extension RecentTradesRow {
+    var hyperliquidExplorerURL: URL {
+        URL(string: "https://app.hyperliquid.xyz/explorer/tx/\(transactionHash)")!
     }
 }
 

@@ -50,6 +50,7 @@ data class RecentTradesRowDisplay(
     val sideText: String,
     val priceText: String,
     val sizeText: String,
+    val transactionHash: String,
     val timeMillis: Long,
     val tradeId: Long,
 )
@@ -74,6 +75,7 @@ private fun RecentTradesEntry.toRecentTradesRowDisplay(): RecentTradesRowDisplay
     },
     priceText = priceText,
     sizeText = sizeText,
+    transactionHash = transactionHash,
     timeMillis = timeMillis,
     tradeId = tradeId,
 )

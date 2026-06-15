@@ -1,6 +1,8 @@
 package org.coreypett.fullstack.features.marketdetails.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,11 +11,18 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -48,9 +57,15 @@ fun RecentTradesSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
+        val uriHandler = LocalUriHandler.current
         RecentTradesHeader(market = market)
         viewState.recentTrades.take(18).forEach { recentTrade ->
-            RecentTradesRow(recentTrade = recentTrade)
+            RecentTradesRow(
+                recentTrade = recentTrade,
+                onOpenTransaction = {
+                    uriHandler.openUri(recentTrade.hyperliquidExplorerUrl())
+                },
+            )
         }
     }
 }
@@ -179,6 +194,7 @@ private fun RowScope.SizeHeaderCell(
 @Composable
 private fun RecentTradesRow(
     recentTrade: RecentTradesRowDisplay,
+    onOpenTransaction: () -> Unit,
 ) {
     val sideColor = when (recentTrade.side) {
         RecentTradesSide.Buy -> MR.colors.bid.toComposeColor()
@@ -217,21 +233,75 @@ private fun RecentTradesRow(
                 maxLines = 1,
             )
         }
-        Text(
-            text = recentTrade.timeMillis.toTradeTime(),
+        Row(
             modifier = Modifier.weight(1f),
-            color = MR.colors.text_secondary.toComposeColor(),
-            fontSize = 13.sp,
-            fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.End,
-            maxLines = 1,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+        ) {
+            Text(
+                text = recentTrade.timeMillis.toTradeTime(),
+                color = MR.colors.text_secondary.toComposeColor(),
+                fontSize = 13.sp,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+            )
+            TransactionExplorerButton(onClick = onOpenTransaction)
+        }
+    }
+}
+
+@Composable
+private fun TransactionExplorerButton(
+    onClick: () -> Unit,
+) {
+    val iconColor = MR.colors.text_secondary.toComposeColor()
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(MR.colors.app_panel.toComposeColor().copy(alpha = 0.82f))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "Open transaction in Hyperliquid explorer" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.size(12.dp)) {
+            val strokeWidth = 1.5.dp.toPx()
+            val inset = 2.dp.toPx()
+            val start = androidx.compose.ui.geometry.Offset(inset, size.height - inset)
+            val end = androidx.compose.ui.geometry.Offset(size.width - inset, inset)
+
+            drawLine(
+                color = iconColor,
+                start = start,
+                end = end,
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = iconColor,
+                start = androidx.compose.ui.geometry.Offset(size.width - inset, inset),
+                end = androidx.compose.ui.geometry.Offset(size.width - inset, size.height * 0.42f),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = iconColor,
+                start = androidx.compose.ui.geometry.Offset(size.width - inset, inset),
+                end = androidx.compose.ui.geometry.Offset(size.width * 0.58f, inset),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round,
+            )
+        }
     }
 }
 
 private fun Long.toTradeTime(): String {
     return SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(this))
 }
+
+private fun RecentTradesRowDisplay.hyperliquidExplorerUrl(): String =
+    "https://app.hyperliquid.xyz/explorer/tx/$transactionHash"
 
 private val RecentTradesSizeColumnWidth = 64.dp
 

@@ -93,6 +93,7 @@ private fun previewRecentTradesState(): RecentTradesViewState = RecentTradesView
             sideText = if (index % 2 == 0) "Buy" else "Sell",
             priceText = "$${104_210 + index * 11}.50",
             sizeText = "${(0.32 + index * 0.13).format(2)}",
+            transactionHash = "0xpreview${index}",
             timeMillis = 1_784_160_000_000L + index * 6_000L,
             tradeId = index.toLong(),
         )
