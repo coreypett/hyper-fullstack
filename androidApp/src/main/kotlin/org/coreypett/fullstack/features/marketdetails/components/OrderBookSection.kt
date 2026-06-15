@@ -1,5 +1,6 @@
 package org.coreypett.fullstack.features.marketdetails.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -18,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.coreypett.fullstack.market.MR
+import org.coreypett.fullstack.orderbook.model.LevelChange
 import org.coreypett.fullstack.orderbook.model.OrderBookSide
 import org.coreypett.fullstack.orderbook.presentation.OrderBookRowDisplay
 import org.coreypett.fullstack.orderbook.presentation.OrderBookStatus
@@ -57,7 +61,10 @@ fun OrderBookSection(
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         OrderBookHeader()
-        SpreadRow(spreadText = viewState.spreadText ?: "--")
+        SpreadRow(
+            spreadText = viewState.spreadText ?: "--",
+            spreadPercentText = viewState.spreadPercentText ?: "--",
+        )
         repeat(rowCount) { index ->
             PairedOrderBookRow(
                 bid = bids.getOrNull(index),
@@ -305,9 +312,9 @@ private fun BidColumns(
         modifier = modifier.padding(start = OrderBookOuterPadding, end = OrderBookCenterPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LevelText(
-            text = level?.sizeText,
-            color = MR.colors.text_primary.toComposeColor(),
+        SizeText(
+            level = level,
+            side = OrderBookSide.Bid,
             textAlign = TextAlign.Start,
         )
         LevelText(
@@ -332,10 +339,56 @@ private fun AskColumns(
             color = MR.colors.ask.toComposeColor(),
             textAlign = TextAlign.Start,
         )
-        LevelText(
-            text = level?.sizeText,
-            color = MR.colors.text_primary.toComposeColor(),
+        SizeText(
+            level = level,
+            side = OrderBookSide.Ask,
             textAlign = TextAlign.End,
+        )
+    }
+}
+
+@Composable
+private fun RowScope.SizeText(
+    level: OrderBookRowDisplay?,
+    side: OrderBookSide,
+    textAlign: TextAlign,
+) {
+    val sideColor = if (side == OrderBookSide.Bid) MR.colors.bid.toComposeColor() else MR.colors.ask.toComposeColor()
+    val flashAlpha = remember(level?.rowKey) { Animatable(0f) }
+
+    LaunchedEffect(level?.rowKey, level?.sizeText, level?.change, level?.sizeChangeFraction) {
+        val startAlpha = when {
+            level == null -> 0f
+            level.change == LevelChange.None -> 0f
+            level.sizeChangeFraction < OrderBookFlashMinChangeFraction -> 0f
+            level.change == LevelChange.Up -> OrderBookFlashUpAlpha
+            else -> OrderBookFlashDownAlpha
+        }
+        if (startAlpha > 0f) {
+            flashAlpha.snapTo(startAlpha)
+            flashAlpha.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+            )
+        } else {
+            flashAlpha.snapTo(0f)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .background(sideColor.copy(alpha = flashAlpha.value)),
+        contentAlignment = if (textAlign == TextAlign.End) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+        Text(
+            text = level?.sizeText ?: "",
+            color = MR.colors.text_primary.toComposeColor(),
+            fontSize = 13.sp,
+            fontFamily = FontFamily.Monospace,
+            textAlign = textAlign,
+            maxLines = 1,
         )
     }
 }
@@ -360,22 +413,39 @@ private fun RowScope.LevelText(
 @Composable
 private fun SpreadRow(
     spreadText: String,
+    spreadPercentText: String,
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(38.dp)
             .background(MR.colors.app_panel.toComposeColor())
             .padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "Spread",
-            color = MR.colors.text_tertiary.toComposeColor(),
-            fontSize = 12.sp,
-        )
-        Spacer(Modifier.width(8.dp))
+        Row(
+            modifier = Modifier.matchParentSize(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Spread",
+                modifier = Modifier.weight(1f),
+                color = MR.colors.text_tertiary.toComposeColor(),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Start,
+                maxLines = 1,
+            )
+            Text(
+                text = spreadPercentText,
+                modifier = Modifier.weight(1f),
+                color = MR.colors.text_tertiary.toComposeColor(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+            )
+        }
         Text(
             text = spreadText,
             color = MR.colors.brand_orange.toComposeColor(),
@@ -391,6 +461,9 @@ private val OrderBookTextCenterGap = 8.dp
 private val OrderBookDepthCenterGap = 0.dp
 private val OrderBookCenterPadding = 0.dp
 private val OrderBookOuterPadding = 4.dp
+private const val OrderBookFlashMinChangeFraction = 0.08f
+private const val OrderBookFlashUpAlpha = 0.16f
+private const val OrderBookFlashDownAlpha = 0.11f
 
 private val SkeletonPriceWidths = listOf(72.dp, 84.dp, 64.dp, 78.dp)
 private val SkeletonSizeWidths = listOf(34.dp, 46.dp, 38.dp, 52.dp)

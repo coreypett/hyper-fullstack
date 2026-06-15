@@ -7,6 +7,7 @@ struct OrderBookState {
     let statusLabel: String
     let centerMessage: String?
     let spreadText: String?
+    let spreadPercentText: String?
     let asks: [OrderBookRow]
     let bids: [OrderBookRow]
     let isLoading: Bool
@@ -31,6 +32,7 @@ struct OrderBookState {
         statusLabel: "Live",
         centerMessage: nil,
         spreadText: "$0.50",
+        spreadPercentText: "0.01%",
         asks: [
             OrderBookRow(side: .ask, priceText: "$69,128", sizeText: "0.75", orderCountText: "1", depthFraction: 0.38, change: .none),
             OrderBookRow(side: .ask, priceText: "$69,127.50", sizeText: "1.00", orderCountText: "2", depthFraction: 0.5, change: .down),
@@ -49,6 +51,7 @@ struct OrderBookState {
         statusLabel: "Connecting",
         centerMessage: nil,
         spreadText: nil,
+        spreadPercentText: nil,
         asks: [],
         bids: [],
         isLoading: true
@@ -59,6 +62,7 @@ struct OrderBookState {
         self.statusLabel = shared.statusLabel
         self.centerMessage = shared.centerMessage
         self.spreadText = shared.spreadText
+        self.spreadPercentText = shared.spreadPercentText
         self.asks = shared.asks.map(OrderBookRow.init)
         self.bids = shared.bids.map(OrderBookRow.init)
         self.isLoading = shared.status == .connecting && !shared.hasRows
@@ -69,6 +73,7 @@ struct OrderBookState {
         statusLabel: String,
         centerMessage: String?,
         spreadText: String?,
+        spreadPercentText: String?,
         asks: [OrderBookRow],
         bids: [OrderBookRow],
         isLoading: Bool
@@ -77,6 +82,7 @@ struct OrderBookState {
         self.statusLabel = statusLabel
         self.centerMessage = centerMessage
         self.spreadText = spreadText
+        self.spreadPercentText = spreadPercentText
         self.asks = asks
         self.bids = bids
         self.isLoading = isLoading
@@ -84,35 +90,43 @@ struct OrderBookState {
 }
 
 struct OrderBookRow: Hashable {
+    let rowKey: String
     let side: OrderBookSide
     let priceText: String
     let sizeText: String
     let orderCountText: String
     let depthFraction: Double
+    let sizeChangeFraction: Double
     let change: LevelChange
 
     init(shared: OrderBookRowDisplay) {
+        self.rowKey = shared.rowKey
         self.side = shared.side
         self.priceText = shared.priceText
         self.sizeText = shared.sizeText
         self.orderCountText = shared.orderCountText
         self.depthFraction = Double(shared.depthFraction)
+        self.sizeChangeFraction = Double(shared.sizeChangeFraction)
         self.change = shared.change
     }
 
     init(
+        rowKey: String? = nil,
         side: OrderBookSide,
         priceText: String,
         sizeText: String,
         orderCountText: String,
         depthFraction: Double,
+        sizeChangeFraction: Double = 0,
         change: LevelChange
     ) {
+        self.rowKey = rowKey ?? "\(side)-\(priceText)"
         self.side = side
         self.priceText = priceText
         self.sizeText = sizeText
         self.orderCountText = orderCountText
         self.depthFraction = depthFraction
+        self.sizeChangeFraction = sizeChangeFraction
         self.change = change
     }
 }
@@ -201,7 +215,10 @@ private struct OrderBookList: View {
         LazyVStack(spacing: 0) {
             HeaderRow()
 
-            SpreadRow(spreadText: orderBook.spreadText ?? "--")
+            SpreadRow(
+                spreadText: orderBook.spreadText ?? "--",
+                spreadPercentText: orderBook.spreadPercentText ?? "--"
+            )
 
             ForEach(Array(orderBook.pairedRows.enumerated()), id: \.offset) { _, pair in
                 PairedLevelRow(pair: pair)
@@ -329,7 +346,7 @@ private struct BidColumns: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            LevelText(level?.sizeText, color: MR.colors.shared.text_primary.swiftUIColor, alignment: .leading)
+            SizeText(level: level, side: .bid, alignment: .leading)
             LevelText(level?.priceText, color: MR.colors.shared.bid.swiftUIColor, alignment: .trailing)
         }
         .frame(maxWidth: .infinity)
@@ -344,11 +361,64 @@ private struct AskColumns: View {
     var body: some View {
         HStack(spacing: 0) {
             LevelText(level?.priceText, color: MR.colors.shared.ask.swiftUIColor, alignment: .leading)
-            LevelText(level?.sizeText, color: MR.colors.shared.text_primary.swiftUIColor, alignment: .trailing)
+            SizeText(level: level, side: .ask, alignment: .trailing)
         }
         .frame(maxWidth: .infinity)
         .padding(.leading, orderBookCenterPadding)
         .padding(.trailing, orderBookOuterPadding)
+    }
+}
+
+private struct SizeText: View {
+    let level: OrderBookRow?
+    let side: OrderBookSide
+    let alignment: Alignment
+
+    @State private var flashOpacity = 0.0
+
+    var body: some View {
+        Text(level?.sizeText ?? "")
+            .foregroundStyle(MR.colors.shared.text_primary.swiftUIColor)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .background(sideColor(for: side).opacity(flashOpacity))
+            .onChange(of: flashTrigger) { _, _ in
+                runFlash()
+            }
+    }
+
+    private var flashTrigger: String? {
+        guard let level,
+              level.change != .none,
+              level.sizeChangeFraction >= orderBookFlashMinChangeFraction
+        else {
+            return nil
+        }
+        return "\(level.rowKey):\(level.sizeText):\(level.change)"
+    }
+
+    private var flashStartOpacity: Double {
+        switch level?.change {
+        case .up:
+            return orderBookFlashUpOpacity
+        case .down:
+            return orderBookFlashDownOpacity
+        default:
+            return 0
+        }
+    }
+
+    private func runFlash() {
+        let startOpacity = flashStartOpacity
+        guard startOpacity > 0 else {
+            flashOpacity = 0
+            return
+        }
+        flashOpacity = startOpacity
+        withAnimation(.easeOut(duration: 0.24)) {
+            flashOpacity = 0
+        }
     }
 }
 
@@ -374,20 +444,33 @@ private struct LevelText: View {
 
 private struct SpreadRow: View {
     let spreadText: String
+    let spreadPercentText: String
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text("Spread")
-                .font(.system(size: 12))
-                .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
+        ZStack {
+            HStack(spacing: 0) {
+                Text("Spread")
+                    .font(.system(size: 12))
+                    .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(spreadPercentText)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
 
             Text(spreadText)
                 .font(.system(size: 15, weight: .semibold, design: .monospaced))
                 .foregroundStyle(MR.colors.shared.brand_orange.swiftUIColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity)
         .frame(height: 38)
-        .padding(.horizontal, 4)
+        .padding(.horizontal, orderBookOuterPadding)
         .background(MR.colors.shared.app_panel.swiftUIColor)
     }
 }
@@ -396,6 +479,9 @@ private let orderBookTextCenterGap: CGFloat = 8
 private let orderBookDepthCenterGap: CGFloat = 0
 private let orderBookCenterPadding: CGFloat = 0
 private let orderBookOuterPadding: CGFloat = 4
+private let orderBookFlashMinChangeFraction = 0.08
+private let orderBookFlashUpOpacity = 0.16
+private let orderBookFlashDownOpacity = 0.11
 
 private func sideColor(for side: OrderBookSide) -> Color {
     side == .bid ? MR.colors.shared.bid.swiftUIColor : MR.colors.shared.ask.swiftUIColor

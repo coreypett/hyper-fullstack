@@ -8,6 +8,7 @@ data class OrderBookLevel(
     val size: Double,
     val orderCount: Int,
     val depthFraction: Float,
+    val sizeChangeFraction: Float = 0f,
     val change: LevelChange = LevelChange.None,
 ) {
     val priceText: String = MarketNumberFormatter.price(price)

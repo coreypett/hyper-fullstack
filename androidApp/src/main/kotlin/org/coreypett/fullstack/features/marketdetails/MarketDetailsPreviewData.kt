@@ -55,6 +55,7 @@ private fun previewOrderBookState(): OrderBookViewState {
             sizeText = "${(1.24 + index * 0.18).format(2)}",
             orderCountText = "${7 + index}",
             depthFraction = 0.18f + index * 0.08f,
+            sizeChangeFraction = if (index == 2) 0.16f else 0f,
             change = if (index == 2) LevelChange.Down else LevelChange.None,
         )
     }
@@ -66,6 +67,7 @@ private fun previewOrderBookState(): OrderBookViewState {
             sizeText = "${(1.92 + index * 0.21).format(2)}",
             orderCountText = "${5 + index}",
             depthFraction = 0.22f + index * 0.07f,
+            sizeChangeFraction = if (index == 1) 0.18f else 0f,
             change = if (index == 1) LevelChange.Up else LevelChange.None,
         )
     }

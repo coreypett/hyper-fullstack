@@ -115,6 +115,7 @@ internal interface OrderBookService {
                     size = level.size,
                     orderCount = level.orderCount,
                     depthFraction = OrderBookLevelCalculator.depthFraction(level.size, maxSize),
+                    sizeChangeFraction = OrderBookLevelCalculator.changeFraction(previousSize, level.size),
                     change = OrderBookLevelCalculator.change(previousSize, level.size),
                 )
             }

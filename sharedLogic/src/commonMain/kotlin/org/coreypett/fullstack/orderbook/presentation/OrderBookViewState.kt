@@ -67,6 +67,7 @@ data class OrderBookRowDisplay(
     val sizeText: String,
     val orderCountText: String,
     val depthFraction: Float,
+    val sizeChangeFraction: Float,
     val change: LevelChange,
 )
 
@@ -92,5 +93,6 @@ private fun OrderBookLevel.toRowDisplay(): OrderBookRowDisplay = OrderBookRowDis
     sizeText = sizeText,
     orderCountText = orderCount.toString(),
     depthFraction = depthFraction,
+    sizeChangeFraction = sizeChangeFraction,
     change = change,
 )

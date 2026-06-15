@@ -12,4 +12,10 @@ internal object OrderBookLevelCalculator {
         currentSize < previousSize -> LevelChange.Down
         else -> LevelChange.None
     }
+
+    fun changeFraction(previousSize: Double?, currentSize: Double): Float {
+        if (previousSize == null) return 0f
+        val denominator = maxOf(kotlin.math.abs(previousSize), kotlin.math.abs(currentSize), 1.0)
+        return (kotlin.math.abs(currentSize - previousSize) / denominator).toFloat()
+    }
 }
