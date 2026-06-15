@@ -1,5 +1,8 @@
 package org.coreypett.fullstack.features.marketdetails.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -100,12 +104,12 @@ private fun SkeletonOrderBookRow(
             .height(30.dp)
             .background(MR.colors.app_background.toComposeColor()),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(OrderBookPriceGap),
+        horizontalArrangement = Arrangement.spacedBy(OrderBookTextCenterGap),
     ) {
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 4.dp, end = 6.dp),
+                .padding(start = OrderBookOuterPadding, end = OrderBookCenterPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SkeletonCell(
@@ -120,7 +124,7 @@ private fun SkeletonOrderBookRow(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 6.dp, end = 4.dp),
+                .padding(start = OrderBookCenterPadding, end = OrderBookOuterPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SkeletonCell(
@@ -159,12 +163,12 @@ private fun OrderBookHeader() {
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(OrderBookPriceGap),
+        horizontalArrangement = Arrangement.spacedBy(OrderBookTextCenterGap),
     ) {
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 4.dp, end = 6.dp),
+                .padding(start = OrderBookOuterPadding, end = OrderBookCenterPadding),
         ) {
             HeaderCell("Size", TextAlign.Start)
             HeaderCell("Price (Bid)", TextAlign.End)
@@ -172,7 +176,7 @@ private fun OrderBookHeader() {
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 6.dp, end = 4.dp),
+                .padding(start = OrderBookCenterPadding, end = OrderBookOuterPadding),
         ) {
             HeaderCell("Price (Ask)", TextAlign.Start)
             HeaderCell("Size", TextAlign.End)
@@ -213,7 +217,7 @@ private fun PairedOrderBookRow(
         Row(
             modifier = Modifier.matchParentSize(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(OrderBookPriceGap),
+            horizontalArrangement = Arrangement.spacedBy(OrderBookTextCenterGap),
         ) {
             BidColumns(
                 level = bid,
@@ -235,12 +239,12 @@ private fun DepthColumns(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(OrderBookPriceGap),
+        horizontalArrangement = Arrangement.spacedBy(OrderBookDepthCenterGap),
     ) {
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 4.dp, end = 6.dp),
+                .padding(start = OrderBookOuterPadding, end = OrderBookCenterPadding),
         ) {
             Spacer(Modifier.weight(1f))
             PriceDepth(
@@ -251,7 +255,7 @@ private fun DepthColumns(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 6.dp, end = 4.dp),
+                .padding(start = OrderBookCenterPadding, end = OrderBookOuterPadding),
         ) {
             PriceDepth(
                 level = ask,
@@ -268,17 +272,23 @@ private fun RowScope.PriceDepth(
     side: OrderBookSide,
 ) {
     val sideColor = if (side == OrderBookSide.Bid) MR.colors.bid.toComposeColor() else MR.colors.ask.toComposeColor()
+    val targetDepth = level?.depthFraction?.coerceIn(0f, 1f) ?: 0f
+    val animatedDepth by animateFloatAsState(
+        targetValue = targetDepth,
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+        label = "orderBookDepth",
+    )
 
     BoxWithConstraints(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
     ) {
-        if (level != null) {
+        if (animatedDepth > 0f) {
             Box(
                 modifier = Modifier
                     .align(if (side == OrderBookSide.Bid) Alignment.CenterEnd else Alignment.CenterStart)
-                    .width(maxWidth * level.depthFraction.coerceIn(0f, 1f))
+                    .width(maxWidth * animatedDepth)
                     .fillMaxHeight()
                     .background(sideColor.copy(alpha = 0.11f)),
             )
@@ -292,7 +302,7 @@ private fun BidColumns(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.padding(start = 4.dp, end = 6.dp),
+        modifier = modifier.padding(start = OrderBookOuterPadding, end = OrderBookCenterPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LevelText(
@@ -314,7 +324,7 @@ private fun AskColumns(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.padding(start = 6.dp, end = 4.dp),
+        modifier = modifier.padding(start = OrderBookCenterPadding, end = OrderBookOuterPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LevelText(
@@ -377,7 +387,10 @@ private fun SpreadRow(
     }
 }
 
-private val OrderBookPriceGap = 8.dp
+private val OrderBookTextCenterGap = 8.dp
+private val OrderBookDepthCenterGap = 0.dp
+private val OrderBookCenterPadding = 0.dp
+private val OrderBookOuterPadding = 4.dp
 
 private val SkeletonPriceWidths = listOf(72.dp, 84.dp, 64.dp, 78.dp)
 private val SkeletonSizeWidths = listOf(34.dp, 46.dp, 38.dp, 52.dp)

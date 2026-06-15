@@ -161,7 +161,7 @@ private struct SkeletonOrderBookRow: View {
     let seed: Int
 
     var body: some View {
-        HStack(spacing: orderBookPriceGap) {
+        HStack(spacing: orderBookTextCenterGap) {
             HStack(spacing: 0) {
                 SkeletonBlock(width: sizeWidth(for: seed), height: 13, cornerRadius: 3)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -169,8 +169,8 @@ private struct SkeletonOrderBookRow: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .frame(maxWidth: .infinity)
-            .padding(.leading, 4)
-            .padding(.trailing, 6)
+            .padding(.leading, orderBookOuterPadding)
+            .padding(.trailing, orderBookCenterPadding)
 
             HStack(spacing: 0) {
                 SkeletonBlock(width: priceWidth(for: seed + 2), height: 13, cornerRadius: 3)
@@ -179,8 +179,8 @@ private struct SkeletonOrderBookRow: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .frame(maxWidth: .infinity)
-            .padding(.leading, 6)
-            .padding(.trailing, 4)
+            .padding(.leading, orderBookCenterPadding)
+            .padding(.trailing, orderBookOuterPadding)
         }
         .frame(height: 30)
     }
@@ -212,22 +212,22 @@ private struct OrderBookList: View {
 
 private struct HeaderRow: View {
     var body: some View {
-        HStack(spacing: orderBookPriceGap) {
+        HStack(spacing: orderBookTextCenterGap) {
             HStack(spacing: 0) {
                 HeaderCell(text: "Size", alignment: .leading)
                 HeaderCell(text: "Price (Bid)", alignment: .trailing)
             }
             .frame(maxWidth: .infinity)
-            .padding(.leading, 4)
-            .padding(.trailing, 6)
+            .padding(.leading, orderBookOuterPadding)
+            .padding(.trailing, orderBookCenterPadding)
 
             HStack(spacing: 0) {
                 HeaderCell(text: "Price (Ask)", alignment: .leading)
                 HeaderCell(text: "Size", alignment: .trailing)
             }
             .frame(maxWidth: .infinity)
-            .padding(.leading, 6)
-            .padding(.trailing, 4)
+            .padding(.leading, orderBookCenterPadding)
+            .padding(.trailing, orderBookOuterPadding)
         }
         .padding(.vertical, 6)
     }
@@ -254,7 +254,7 @@ private struct PairedLevelRow: View {
         ZStack {
             DepthColumns(pair: pair)
 
-            HStack(spacing: orderBookPriceGap) {
+            HStack(spacing: orderBookTextCenterGap) {
                 BidColumns(level: pair.bid)
                 AskColumns(level: pair.ask)
             }
@@ -269,7 +269,7 @@ private struct DepthColumns: View {
     let pair: OrderBookLevelPair
 
     var body: some View {
-        HStack(spacing: orderBookPriceGap) {
+        HStack(spacing: orderBookDepthCenterGap) {
             HStack(spacing: 0) {
                 Color.clear
                     .frame(maxWidth: .infinity)
@@ -277,8 +277,8 @@ private struct DepthColumns: View {
                 PriceDepth(level: pair.bid, side: .bid)
             }
             .frame(maxWidth: .infinity)
-            .padding(.leading, 4)
-            .padding(.trailing, 6)
+            .padding(.leading, orderBookOuterPadding)
+            .padding(.trailing, orderBookCenterPadding)
 
             HStack(spacing: 0) {
                 PriceDepth(level: pair.ask, side: .ask)
@@ -287,8 +287,8 @@ private struct DepthColumns: View {
                     .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
-            .padding(.leading, 6)
-            .padding(.trailing, 4)
+            .padding(.leading, orderBookCenterPadding)
+            .padding(.trailing, orderBookOuterPadding)
         }
     }
 }
@@ -300,11 +300,10 @@ private struct PriceDepth: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: side == .bid ? .trailing : .leading) {
-                if let level {
-                    sideColor(for: side)
-                        .opacity(0.11)
-                        .frame(width: geometry.size.width * CGFloat(clamped(level.depthFraction)))
-                }
+                sideColor(for: side)
+                    .opacity(level == nil ? 0 : 0.11)
+                    .frame(width: geometry.size.width * CGFloat(depthFraction))
+                    .animation(.easeInOut(duration: 0.18), value: depthFraction)
             }
             .frame(
                 width: geometry.size.width,
@@ -319,6 +318,10 @@ private struct PriceDepth: View {
     private func clamped(_ value: Double) -> Double {
         min(max(value, 0), 1)
     }
+
+    private var depthFraction: Double {
+        level.map { clamped($0.depthFraction) } ?? 0
+    }
 }
 
 private struct BidColumns: View {
@@ -330,8 +333,8 @@ private struct BidColumns: View {
             LevelText(level?.priceText, color: MR.colors.shared.bid.swiftUIColor, alignment: .trailing)
         }
         .frame(maxWidth: .infinity)
-        .padding(.leading, 4)
-        .padding(.trailing, 6)
+        .padding(.leading, orderBookOuterPadding)
+        .padding(.trailing, orderBookCenterPadding)
     }
 }
 
@@ -344,8 +347,8 @@ private struct AskColumns: View {
             LevelText(level?.sizeText, color: MR.colors.shared.text_primary.swiftUIColor, alignment: .trailing)
         }
         .frame(maxWidth: .infinity)
-        .padding(.leading, 6)
-        .padding(.trailing, 4)
+        .padding(.leading, orderBookCenterPadding)
+        .padding(.trailing, orderBookOuterPadding)
     }
 }
 
@@ -389,7 +392,10 @@ private struct SpreadRow: View {
     }
 }
 
-private let orderBookPriceGap: CGFloat = 8
+private let orderBookTextCenterGap: CGFloat = 8
+private let orderBookDepthCenterGap: CGFloat = 0
+private let orderBookCenterPadding: CGFloat = 0
+private let orderBookOuterPadding: CGFloat = 4
 
 private func sideColor(for side: OrderBookSide) -> Color {
     side == .bid ? MR.colors.shared.bid.swiftUIColor : MR.colors.shared.ask.swiftUIColor
