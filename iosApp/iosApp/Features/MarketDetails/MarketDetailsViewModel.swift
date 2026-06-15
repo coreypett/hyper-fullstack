@@ -25,7 +25,7 @@ final class MarketDetailsViewModel: ObservableObject {
         marketSummaryFeature: MarketSummaryFeature? = SharedDependencyGraph.shared.marketSummaryFeature(),
         recentTradesFeature: RecentTradesFeature? = SharedDependencyGraph.shared.recentTradesFeature()
     ) {
-        let initialSelection = orderBookFeature?.selection ?? OrderBookSelection(market: .btc, precision: .two)
+        let initialSelection = orderBookFeature?.selection ?? OrderBookSelection(market: .btc, precision: .five)
         let initialCandleSelection = candleChartFeature?.selection ?? CandleSelection(market: initialSelection.market, interval: .oneHour)
         let initialOrderBook = orderBookFeature?.currentState
         let initialCandles = candleChartFeature?.currentState.bars ?? []
