@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.coreypett.fullstack.market.candle.model.CandleBar
 import org.coreypett.fullstack.market.candle.model.CandleChartUiState
 import org.coreypett.fullstack.market.candle.model.CandleHistoryRange
@@ -26,12 +28,15 @@ interface CandleRepository {
     class Impl internal constructor(
         private val service: CandleService,
     ) : CandleRepository {
+        private val latestBars = mutableMapOf<CandleSelection, List<CandleBar>>()
+        private val latestBarsMutex = Mutex()
+
         constructor() : this(CandleService.Impl())
 
         @OptIn(ExperimentalCoroutinesApi::class)
         override fun states(selection: StateFlow<CandleSelection>): Flow<CandleChartUiState> =
             selection.flatMapLatest { currentSelection ->
-                candleStates(currentSelection, initialBars = emptyList())
+                candleStates(currentSelection, initialBars = latestBars(currentSelection))
             }
 
         @OptIn(ExperimentalCoroutinesApi::class)
@@ -43,16 +48,29 @@ interface CandleRepository {
                 currentSelection to currentRange
             }.flatMapLatest { (currentSelection, currentRange) ->
                 flow<CandleChartUiState> {
-                    emit(CandleChartUiState.Connecting)
+                    var bars = latestBars(currentSelection)
+                    if (bars.isEmpty()) {
+                        emit(CandleChartUiState.Connecting)
+                    } else {
+                        emit(CandleChartUiState.Live(bars))
+                    }
+
                     try {
                         val historicalBars = service.history(currentSelection, currentRange)
                             .takeLast(MaxVisibleCandles)
+                        bars = historicalBars
+                        cacheBars(currentSelection, historicalBars)
                         emit(CandleChartUiState.Live(historicalBars))
                         candleStates(currentSelection, historicalBars, emitConnecting = false)
                             .collect { emit(it) }
                     } catch (error: Throwable) {
                         if (error is CancellationException) throw error
-                        emit(CandleChartUiState.Failed(error.message ?: "Unable to load candles"))
+                        val message = error.message ?: "Unable to load candles"
+                        if (bars.isEmpty()) {
+                            emit(CandleChartUiState.Failed(message))
+                        } else {
+                            emit(CandleChartUiState.Stale(bars, message))
+                        }
                     }
                 }
             }
@@ -72,6 +90,7 @@ interface CandleRepository {
                     when (event) {
                         is RealtimeFeedEvent.Live -> {
                             bars = bars.upsertByOpenTime(event.value).takeLast(MaxVisibleCandles)
+                            cacheBars(selection, bars)
                             emit(CandleChartUiState.Live(bars))
                         }
                         is RealtimeFeedEvent.Reconnecting -> {
@@ -100,6 +119,17 @@ interface CandleRepository {
                 toMutableList().also { it[existingIndex] = next }
             } else {
                 (this + next).sortedBy(CandleBar::openTimeMillis)
+            }
+        }
+
+        private suspend fun latestBars(selection: CandleSelection): List<CandleBar> =
+            latestBarsMutex.withLock {
+                latestBars[selection].orEmpty()
+            }
+
+        private suspend fun cacheBars(selection: CandleSelection, bars: List<CandleBar>) {
+            latestBarsMutex.withLock {
+                latestBars[selection] = bars.takeLast(MaxVisibleCandles)
             }
         }
     }
