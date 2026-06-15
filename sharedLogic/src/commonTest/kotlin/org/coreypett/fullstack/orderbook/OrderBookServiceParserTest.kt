@@ -141,6 +141,36 @@ class OrderBookServiceParserTest {
         assertEquals(LevelChange.Down, snapshots[1].asks.single().change)
     }
 
+    @Test
+    fun normalizesDepthWhenVisibleSizesAreBelowOne() = runBlocking {
+        val service = OrderBookService.Impl(
+            webSocketClient = FakeWebSocketClient(
+                l2BookFrame(
+                    coin = "BTC",
+                    levels = """
+                        [
+                          [
+                            {"px": "69125.5", "sz": "0.50", "n": 3},
+                            {"px": "69124.0", "sz": "0.25", "n": 1}
+                          ],
+                          [
+                            {"px": "69126.0", "sz": "0.40", "n": 4},
+                            {"px": "69127.5", "sz": "0.10", "n": 2}
+                          ]
+                        ]
+                    """.trimIndent(),
+                ),
+            ),
+        )
+
+        val snapshot = service.snapshots(OrderBookSelection(market = MarketSymbol.BTC)).first()
+
+        assertEquals(1.0f, snapshot.bids[0].depthFraction)
+        assertEquals(0.5f, snapshot.bids[1].depthFraction)
+        assertEquals(1.0f, snapshot.asks[0].depthFraction)
+        assertEquals(0.25f, snapshot.asks[1].depthFraction)
+    }
+
     private fun l2BookFrame(
         coin: String,
         levels: String = """

@@ -288,9 +288,6 @@ private struct DepthColumns: View {
     var body: some View {
         HStack(spacing: orderBookDepthCenterGap) {
             HStack(spacing: 0) {
-                Color.clear
-                    .frame(maxWidth: .infinity)
-
                 PriceDepth(level: pair.bid, side: .bid)
             }
             .frame(maxWidth: .infinity)
@@ -299,9 +296,6 @@ private struct DepthColumns: View {
 
             HStack(spacing: 0) {
                 PriceDepth(level: pair.ask, side: .ask)
-
-                Color.clear
-                    .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
             .padding(.leading, orderBookCenterPadding)

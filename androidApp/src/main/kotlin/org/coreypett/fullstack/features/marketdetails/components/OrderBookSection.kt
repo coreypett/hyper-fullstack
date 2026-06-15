@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -253,7 +252,6 @@ private fun DepthColumns(
                 .weight(1f)
                 .padding(start = OrderBookOuterPadding, end = OrderBookCenterPadding),
         ) {
-            Spacer(Modifier.weight(1f))
             PriceDepth(
                 level = bid,
                 side = OrderBookSide.Bid,
@@ -268,7 +266,6 @@ private fun DepthColumns(
                 level = ask,
                 side = OrderBookSide.Ask,
             )
-            Spacer(Modifier.weight(1f))
         }
     }
 }
