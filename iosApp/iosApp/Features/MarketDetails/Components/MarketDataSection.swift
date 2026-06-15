@@ -50,6 +50,7 @@ private struct MarketDataPanelSelector: View {
         HStack(spacing: 3) {
             ForEach(MarketDataPanel.allCases, id: \.self) { panel in
                 Button {
+                    AppHaptics.selectionChanged()
                     onSelect(panel)
                 } label: {
                     Text(panel.title)
@@ -80,6 +81,7 @@ private struct GroupingMenu: View {
         Menu {
             ForEach([PricePrecision.two, .three, .four, .five], id: \.self) { precision in
                 Button {
+                    AppHaptics.selectionChanged()
                     onSelect(precision)
                 } label: {
                     HStack {
@@ -110,6 +112,11 @@ private struct GroupingMenu: View {
             .clipShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                AppHaptics.buttonTap()
+            }
+        )
     }
 }
 

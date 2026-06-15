@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -60,6 +59,7 @@ import org.coreypett.fullstack.market.candle.model.CandleBar
 import org.coreypett.fullstack.market.candle.model.CandleInterval
 import org.coreypett.fullstack.market.candle.presentation.CandleChartStatus
 import org.coreypett.fullstack.market.candle.presentation.CandleChartState
+import org.coreypett.fullstack.support.hapticClickable
 import org.coreypett.fullstack.support.toComposeColor
 
 @Composable
@@ -188,7 +188,7 @@ private fun IntervalSelector(
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     maxLines = 1,
-                    modifier = Modifier.clickable { onIntervalSelected(interval) },
+                    modifier = Modifier.hapticClickable { onIntervalSelected(interval) },
                 )
             }
         }

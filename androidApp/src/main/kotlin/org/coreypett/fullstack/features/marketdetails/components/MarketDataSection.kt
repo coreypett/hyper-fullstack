@@ -3,7 +3,6 @@ package org.coreypett.fullstack.features.marketdetails.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +36,8 @@ import org.coreypett.fullstack.market.model.MarketSymbol
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
 import org.coreypett.fullstack.orderbook.model.PricePrecision
 import org.coreypett.fullstack.orderbook.presentation.OrderBookViewState
+import org.coreypett.fullstack.support.hapticClickable
+import org.coreypett.fullstack.support.rememberTapHaptic
 import org.coreypett.fullstack.support.toComposeColor
 
 @Composable
@@ -111,7 +112,7 @@ private fun PanelSelector(
                             MR.colors.app_panel.toComposeColor().copy(alpha = 0f)
                         },
                     )
-                    .clickable { onPanelSelected(panel) }
+                    .hapticClickable { onPanelSelected(panel) }
                     .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -136,6 +137,7 @@ private fun PrecisionSelector(
     onPrecisionSelected: (PricePrecision) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val performHaptic = rememberTapHaptic()
 
     Box {
         Row(
@@ -143,7 +145,7 @@ private fun PrecisionSelector(
                 .height(34.dp)
                 .clip(RoundedCornerShape(percent = 50))
                 .background(MR.colors.app_panel.toComposeColor().copy(alpha = 0.62f))
-                .clickable { expanded = true }
+                .hapticClickable { expanded = true }
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -196,6 +198,7 @@ private fun PrecisionSelector(
                         )
                     },
                     onClick = {
+                        performHaptic()
                         expanded = false
                         onPrecisionSelected(precision)
                     },

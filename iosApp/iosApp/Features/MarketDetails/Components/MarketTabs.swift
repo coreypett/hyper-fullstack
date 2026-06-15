@@ -35,6 +35,7 @@ private struct MarketTabButton: View {
 
     var body: some View {
         Button {
+            AppHaptics.selectionChanged()
             onSelect(market)
         } label: {
             HStack(spacing: 8) {

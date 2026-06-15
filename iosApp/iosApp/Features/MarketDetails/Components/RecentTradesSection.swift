@@ -287,7 +287,10 @@ private struct TransactionHashButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            AppHaptics.buttonTap()
+            action()
+        } label: {
             Image(systemName: "arrow.up.right")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(MR.colors.shared.text_secondary.swiftUIColor)

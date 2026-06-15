@@ -14,7 +14,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +55,7 @@ import org.coreypett.fullstack.market.trade.model.RecentTradesSide
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesRowDisplay
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesStatus
 import org.coreypett.fullstack.market.trade.presentation.RecentTradesViewState
+import org.coreypett.fullstack.support.hapticClickable
 import org.coreypett.fullstack.support.toComposeColor
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -340,7 +340,7 @@ private fun TransactionExplorerButton(
             .size(22.dp)
             .clip(CircleShape)
             .background(MR.colors.app_panel.toComposeColor().copy(alpha = 0.82f))
-            .clickable(onClick = onClick)
+            .hapticClickable(onClick = onClick)
             .semantics { contentDescription = "Open transaction in Hyperliquid explorer" },
         contentAlignment = Alignment.Center,
     ) {
@@ -413,7 +413,7 @@ private fun HyperliquidExplorerDialog(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .clickable(onClick = onDismiss)
+                        .hapticClickable(onClick = onDismiss)
                         .semantics { contentDescription = "Close explorer" },
                     contentAlignment = Alignment.Center,
                 ) {

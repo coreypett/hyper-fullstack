@@ -105,6 +105,7 @@ private struct ChartWatermark: View {
     }
 }
 
+
 private struct IntervalSelector: View {
     let selectedInterval: CandleInterval
     let onSelect: (CandleInterval) -> Void
@@ -119,6 +120,7 @@ private struct IntervalSelector: View {
             HStack(spacing: 12) {
                 ForEach(chartIntervals, id: \.self) { interval in
                     Button {
+                        AppHaptics.selectionChanged()
                         onSelect(interval)
                     } label: {
                         Text(intervalLabel(for: interval))
