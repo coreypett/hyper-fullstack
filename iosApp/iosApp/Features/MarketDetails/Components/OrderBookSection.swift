@@ -31,7 +31,7 @@ struct OrderBookState {
         statusLabel: "Live",
         centerMessage: nil,
         spreadText: "$0.50",
-        spreadPercentText: "0.01%",
+        spreadPercentText: "0.001%",
         asks: [
             OrderBookRow(side: .ask, priceText: "$69,128", sizeText: "0.75", orderCountText: "1", depthFraction: 0.38, change: .none),
             OrderBookRow(side: .ask, priceText: "$69,127.50", sizeText: "1.00", orderCountText: "2", depthFraction: 0.5, change: .down),
@@ -444,27 +444,21 @@ private struct SpreadRow: View {
     let spreadPercentText: String
 
     var body: some View {
-        ZStack {
-            HStack(spacing: 0) {
-                Text("Spread")
-                    .font(.system(size: 12))
-                    .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(spreadPercentText)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
+        HStack(spacing: 6) {
+            Text("Spread")
+                .font(.system(size: 12))
+                .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
 
             Text(spreadText)
                 .font(.system(size: 15, weight: .semibold, design: .monospaced))
                 .foregroundStyle(MR.colors.shared.brand_orange.swiftUIColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
+
+            Text(spreadPercentText)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(MR.colors.shared.text_tertiary.swiftUIColor)
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
         .frame(maxWidth: .infinity)
         .frame(height: 38)
         .padding(.horizontal, orderBookOuterPadding)

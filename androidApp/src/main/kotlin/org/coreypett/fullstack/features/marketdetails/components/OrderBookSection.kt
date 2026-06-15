@@ -413,42 +413,34 @@ private fun SpreadRow(
     spreadText: String,
     spreadPercentText: String,
 ) {
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(38.dp)
             .background(MR.colors.app_panel.toComposeColor())
             .padding(horizontal = 4.dp),
-        contentAlignment = Alignment.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
     ) {
-        Row(
-            modifier = Modifier.matchParentSize(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Spread",
-                modifier = Modifier.weight(1f),
-                color = MR.colors.text_tertiary.toComposeColor(),
-                fontSize = 12.sp,
-                textAlign = TextAlign.Start,
-                maxLines = 1,
-            )
-            Text(
-                text = spreadPercentText,
-                modifier = Modifier.weight(1f),
-                color = MR.colors.text_tertiary.toComposeColor(),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                fontFamily = FontFamily.Monospace,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-            )
-        }
+        Text(
+            text = "Spread",
+            color = MR.colors.text_tertiary.toComposeColor(),
+            fontSize = 12.sp,
+            maxLines = 1,
+        )
         Text(
             text = spreadText,
             color = MR.colors.brand_orange.toComposeColor(),
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+        )
+        Text(
+            text = spreadPercentText,
+            color = MR.colors.text_tertiary.toComposeColor(),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.Monospace,
             maxLines = 1,
         )

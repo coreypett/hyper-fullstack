@@ -22,8 +22,10 @@ data class OrderBookSnapshot(
 }
 
 private fun formatSpreadPercent(value: Double): String {
-    val rounded = kotlin.math.round(value * 100.0) / 100.0
-    val whole = rounded.toLong()
-    val fraction = kotlin.math.round((rounded - whole) * 100.0).toLong()
-    return "$whole.${fraction.toString().padStart(2, '0')}%"
+    val scaled = kotlin.math.round(value * 1000.0).toLong()
+    val sign = if (scaled < 0) "-" else ""
+    val absolute = kotlin.math.abs(scaled)
+    val whole = absolute / 1000
+    val fraction = absolute % 1000
+    return "$sign$whole.${fraction.toString().padStart(3, '0')}%"
 }

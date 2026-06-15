@@ -77,7 +77,7 @@ private fun previewOrderBookState(): OrderBookViewState {
         centerMessage = null,
         midPriceText = "$104,232.10",
         spreadText = "$36.00",
-        spreadPercentText = "0.03%",
+        spreadPercentText = "0.035%",
         asks = asks,
         bids = bids,
     )

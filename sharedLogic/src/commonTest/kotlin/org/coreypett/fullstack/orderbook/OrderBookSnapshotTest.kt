@@ -22,7 +22,7 @@ class OrderBookSnapshotTest {
 
         assertEquals(2.0, snapshot.spread)
         assertEquals(2.0, snapshot.spreadPercent)
-        assertEquals("2.00%", snapshot.spreadPercentText)
+        assertEquals("2.000%", snapshot.spreadPercentText)
     }
 
     private fun level(
